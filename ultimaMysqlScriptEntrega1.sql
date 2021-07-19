@@ -222,125 +222,36 @@ INSERT INTO Docente_Desconexion(docenteCi,FechaDesconexion) VALUES
 (88888888,NOW() + INTERVAL 2 HOUR);
 
 INSERT INTO ConsultaPrivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus,cpFechaHora) VALUES
-(1,77777777,11111111,'1 consulta','pendiente',NOW()),
-(1,77777777,22222222,'1 consulta','pendiente',NOW()),
-(1,77777777,33333333,'1 consulta','pendiente',NOW()),
-(1,77777777,44444444,'1 consulta','pendiente',NOW()),
-(1,88888888,11111111,'1 consulta','pendiente',NOW()),
-(1,88888888,33333333,'1 consulta','pendiente',NOW()),
-(1,88888888,55555555,'1 consulta','pendiente',NOW()),
-(2,77777777,11111111,'1 consulta','pendiente',NOW()),
-(3,77777777,11111111,'3 consulta','pendiente',NOW()),
-(4,77777777,11111111,'4 consulta','pendiente',NOW());
+(1,77777777,11111111,'hola','pendiente',NOW()),
+(1,77777777,22222222,'profe hello','pendiente',NOW()),
+(1,77777777,33333333,'soy tu alumno','pendiente',NOW()),
+(1,77777777,44444444,'prat1','pendiente',NOW()),
+(1,88888888,11111111,'prat1 ej3','pendiente',NOW()),
+(1,88888888,33333333,'prat4','pendiente',NOW()),
+(1,88888888,55555555,'prat3','pendiente',NOW()),
+(2,77777777,11111111,'HOLAAAA','pendiente',NOW()),
+(3,77777777,11111111,'todobien?','pendiente',NOW()),
+(4,77777777,11111111,'faltas hoy?','pendiente',NOW());
 
 
 INSERT INTO CP_Mensaje (idCp_mensaje,idConsultaPrivada,ciDocente,ciAlumno,contenido,attachment,cp_mensajeFechaHora,cp_mensajeStatus, ciDestinatario)
 VALUES 
 (1,1,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,1,77777777,11111111,'asderererwasda',NULL,NOW(),'leido',11111111),
-(3,1,77777777,11111111,'rrrrr',NULL,NOW(),'leido',77777777),
 (1,1,77777777,22222222,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,1,77777777,22222222,'asdasda',NULL,NOW(),'recibido',22222222),
-(3,1,77777777,22222222,'asdasda',NULL,NOW(),'recibido',77777777),
-(4,1,77777777,22222222,'asdasda',NULL,NOW(),'recibido',22222222),
 (1,1,77777777,33333333,'fsdfsdfsdfsd',NULL,NOW(),'leido',77777777),
 (2,1,77777777,33333333,'gfgfdgdf',NULL,NOW(),'leido',77777777),
 (1,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',77777777),
 (2,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',44444444),
-(3,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',44444444),
-(4,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',77777777),
-(5,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',44444444),
-(6,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',77777777),
 (1,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
 (2,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',11111111),
-(3,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
-(4,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',11111111),
-(5,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
 (1,1,88888888,33333333,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
 (2,1,88888888,33333333,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',33333333),
-(6,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
-(7,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',11111111),
-(8,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
 (1,1,88888888,55555555,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
 (1,2,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,2,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
-(3,2,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (1,3,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,3,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
 (1,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
-(2,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
-(4,2,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777);
-
-/*
-
-select  dgm.idGrupo,dgm.idMateria,g.nombregrupo, m.NombreMateria  from docente_dicta_G_M dgm,Grupo g,Materia m 
-where dgm.docenteCi is null and dgm.idMateria=m.idMateria and g.idGrupo=dgm.idGrupo;
- 
-UPDATE Docente_Dicta_G_M SET docenteCi=88888888 WHERE idGrupo=2 AND idMateria=7;
-
-INSERT INTO Docente_Dicta_G_M (docenteCi,idGrupo,idMateria) VALUES (88888888,5,16);
-
-SELECT a.ci, p.clave, p.nombre, p.apellido FROM Alumno a,Persona p WHERE p.ci=a.ci AND a.ci=@user AND p.clave=@pass AND P.isDeleted=false;
-
-UPDATE Persona SET clave=@clave, isDeleted=@isDeleted, foto=@foto, avatar=@avatar, enLinea=@enLinea WHERE ci=@ci
-
-UPDATE Persona SET isDeleted=true WHERE ci=11111111;
-
-
-select * from Alumno;
-select * from Alumno_tiene_Grupo;
-select * from Administrador;
-select * from Docente;
-select * from Persona;
-SELECT * FROM Docente_dicta_G_M dgm;
-SELECT * FROM ConsultaPrivada;
-SELECT * FROM CP_Mensaje;
-
-SELECT * FROM Table1 WHERE id NOT IN (SELECT id FROM Table2)
-
-SELECT * FROM Grupo_tiene_Materia WHERE idGrupo,idMateria NOT IN (SELECT idGrupo,idMateria FROM Docente_Dicta_G_M);
-
-SELECT * FROM Grupo_Tiene_Materia WHERE idGrupo NOT IN (SELECT idGrupo FROM Docente_Dicta_G_M dgm);
-
-SELECT * FROM Grupo_Tiene_Materia WHERE idMateria NOT IN (SELECT idMateria FROM Docente_Dicta_G_M dgm);
-
-select distinct gm.idGrupo,gm.idMateria from grupo_tiene_materia gm inner join docente_dicta_G_M dgm on 
-gm.idGrupo except (SELECT idGrupo FROM Docente_Dicta_G_M ) 
-AND gm.idMateria except (SELECT idMateria FROM Docente_Dicta_G_M );
-
-******trae los nombres  y ids de los grupos y materias en la tabla grupo_tiene_materia
-SELECT gm.idGrupo, gm.idMateria,g.nombreGrupo,m.nombreMateria FROM Grupo_Tiene_Materia gm, grupo g, materia m
-WHERE gm.idGrupo=g.idGrupo AND gm.idMateria=m.idMateria;
-
-*****queria que me traiga los nombres y id's de los grupos/materias que aun no estan asignados a un docente en 
-*****docente_dicta_G_M
-SELECT gm.idGrupo, gm.idMateria,g.nombreGrupo,m.nombreMateria FROM Grupo_Tiene_Materia gm, grupo g, materia m, docente_dicta_G_M d
-WHERE gm.idGrupo=g.idGrupo AND gm.idMateria=m.idMateria AND NOT (d.idGrupo=d.idGrupo AND d.idMateria=m.idMateria);
-
-
-
-SELECT DISTINCT cp.idConsultaPrivada, m.idCp_mensaje, cp.docenteCi, cp.alumnoCi, cp.titulo, cp.cpStatus, cp.cpFechaHora, m.ciDestinatario FROM ConsultaPrivada cp 
-inner join CP_Mensaje m on cp.idConsultaPrivada=m.idConsultaPrivada AND cp.docenteCi=m.ciDestinatario;
-
-******trae nombres y ids de materias/grupos, de docentes la ci y nombre. De los datos en docente_dicta_G_M
-SELECT g.nombreGrupo, m.nombreMateria , p.nombre AS "nombre de docente", p.apellido AS "apellido de docente", p.ci ,g.idGrupo, m.idMateria
-FROM Docente_dicta_G_M dgm, materia m, Persona p, grupo g
-WHERE dgm.idMateria=m.idMateria AND p.ci=dgm.docenteCi AND dgm.idGrupo=g.idGrupo;
-
-SELECT * FROM CP_Mensaje cpm WHERE cpm.ciDocente=avalue AND cpm.ciAlumno=avalue AND cpm.idConsultaPrivada=avaluuue ; 
-
-/*pass ciAlumno or ciDocente as parametersbut not both and the idofConsulta  
-returns all the msgs of a person knowing the idconsulta and person ci
-
-SELECT cpm.idConsultaPrivada, cpm.ciAlumno, cpm.ciDocente, cpm.idCp_mensaje, cpm.contenido, cpm.attachment, cpm.cp_mensajeFechaHora, cpm.cp_mensajeStatus
-FROM CP_Mensaje cpm 
-WHERE cpm.idConsultaPrivada=1 AND cpm.ciDocente=77777777 AND cpm.ciAlumno=11111111;
-
-SELECT cpm.idConsultaPrivada, cpm.ciAlumno, cpm.ciDocente, cpm.idCp_mensaje, cpm.contenido, cpm.attachment, cpm.cp_mensajeFechaHora, cpm.cp_mensajeStatus
-FROM CP_Mensaje cpm;
-
-SELECT MAX(idConsultaPrivada) FROM ConsultaPrivada WHERE DocenteCi=88888888 AND alumnoCi=11111111;
-
-SELECT  m.nombreMateria,g.nombreGrupo FROM Materia m ,grupo g, grupo_tiene_Materia gm ,Orientacion_tiene_grupo og 
-WHERE og.idGrupo=gm.idGrupo AND m.idMateria=gm.idMateria AND gm.idGrupo=g.idGrupo;
-*/
+(2,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111);
