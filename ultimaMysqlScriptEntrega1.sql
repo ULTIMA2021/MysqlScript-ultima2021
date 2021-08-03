@@ -1,6 +1,22 @@
 DROP DATABASE IF EXISTS ultimaDB;
+drop user if exists "login"; 
+
 CREATE DATABASE ultimaDB;
 USE ultimaDB;
+/*
+the encryption must be on the app level 
+and the grant commands must be modified to limit what each usertype can do 
+*/
+
+create user "login"@"localhost" identified by "login";
+create user "alumnoDB"@"localhost" identified by "alumnoclave";
+create user "docenteDB"@"localhost" identified by "docenteclave";
+create user "adminDB"@"localhost" identified by "adminclave";
+
+grant all privileges on ultimaDB.* to "login"@"localhost";
+grant all privileges on ultimaDB.* to "alumnoDB"@"localhost";
+grant all privileges on ultimaDB.* to "docenteDB"@"localhost";
+grant all privileges on ultimaDB.* to "adminDB"@"localhost";
 
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -126,7 +142,6 @@ FOREIGN KEY (idConsultaPrivada) REFERENCES ConsultaPrivada (idConsultaPrivada),
 FOREIGN KEY (ciAlumno) REFERENCES Alumno (ci),
 FOREIGN KEY (ciDocente) REFERENCES Docente (ci),
 FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci)
-
 );
 
 INSERT INTO Grupo (nombreGrupo) VALUES 
