@@ -1,22 +1,11 @@
 DROP DATABASE IF EXISTS ultimaDB;
-drop user if exists "login"; 
-
 CREATE DATABASE ultimaDB;
 USE ultimaDB;
-/*
-the encryption must be on the app level 
-and the grant commands must be modified to limit what each usertype can do 
-*/
 
-create user "login"@"localhost" identified by "login";
-create user "alumnoDB"@"localhost" identified by "alumnoclave";
-create user "docenteDB"@"localhost" identified by "docenteclave";
-create user "adminDB"@"localhost" identified by "adminclave";
-
-grant all privileges on ultimaDB.* to "login"@"localhost";
-grant all privileges on ultimaDB.* to "alumnoDB"@"localhost";
-grant all privileges on ultimaDB.* to "docenteDB"@"localhost";
-grant all privileges on ultimaDB.* to "adminDB"@"localhost";
+drop user if exists login@"localhost";
+drop user if exists alumnoDB@"localhost";
+drop user if exists docenteDB@"localhost";
+drop user if exists adminDB@"localhost";
 
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -26,12 +15,14 @@ CREATE TABLE Materia(
 idMateria INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
 nombreMateria VARCHAR(25) NOT NULL
 );
-CREATE TABLE Grupo_tiene_Materia(
-idGrupo INT  NOT NULL,
-idMateria INT  NOT NULL,
-PRIMARY KEY(idGrupo,idMateria),
-FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo),
-FOREIGN KEY (idMateria) REFERENCES Materia(idMateria)
+CREATE TABLE Grupo_tiene_Materia (
+    idGrupo INT NOT NULL,
+    idMateria INT NOT NULL,
+    PRIMARY KEY (idGrupo , idMateria),
+    FOREIGN KEY (idGrupo)
+        REFERENCES Grupo (idGrupo),
+    FOREIGN KEY (idMateria)
+        REFERENCES Materia (idMateria)
 ); 
 CREATE TABLE Orientacion(
 idOrientacion INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -48,34 +39,35 @@ CREATE TABLE Persona (
     ci INT(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
-    clave VARCHAR(15) NOT NULL,
+    clave VARCHAR(16) NOT NULL ,
     isDeleted BOOL NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
     enLinea BOOL NOT NULL
 );
+
 CREATE TABLE Administrador (
-    ci INT NOT NULL,
+    ci INT NOT NULL UNIQUE,
     idAdmin INT NOT NULL AUTO_INCREMENT,
     PRIMARY KEY (idAdmin , ci),
     FOREIGN KEY (ci)
         REFERENCES persona (ci)
 );
 CREATE TABLE Docente (
-	ci INT NOT NULL,
+	ci INT NOT NULL UNIQUE,
     idDocente INT NOT NULL AUTO_INCREMENT,
     PRIMARY KEY (idDocente,ci),
     FOREIGN KEY (ci)
         REFERENCES Persona (ci)
 );
-Create table PersonaTemp(
+CREATE TABLE PersonaTemp(
 ci INT(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
-    clave VARCHAR(15) NOT NULL,
+    clave VARCHAR(16) NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
-    tipoUser enum('alumno','docente','admin'));
+    tipoUser ENUM('alumno','docente','admin'));
 
 CREATE TABLE Docente_dicta_G_M (
 idGrupo INT NOT NULL,
@@ -85,17 +77,6 @@ PRIMARY KEY (idGrupo,idMateria),
 FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo),
 FOREIGN KEY (idMateria) REFERENCES Materia(idMateria),
 FOREIGN KEY (docenteCi) REFERENCES Docente (ci)
-);
-CREATE TABLE Docente_Conexion (
-    docenteCi INT NOT NULL ,
-    FechaConexion DATETIME NOT NULL,
-    FOREIGN KEY (docenteCi) REFERENCES Docente (ci) 
-);
-CREATE TABLE Docente_Desconexion (
-    docenteCi INT NOT NULL,
-    FechaDesconexion DATETIME NOT NULL,
-    FOREIGN KEY (docenteCi)
-        REFERENCES Docente (ci)
 );
 
 CREATE TABLE Alumno (
@@ -126,7 +107,7 @@ CREATE TABLE ConsultaPrivada (
         REFERENCES Docente (ci),
     FOREIGN KEY (alumnoCi)
         REFERENCES Alumno (ci)
-);
+        );
 CREATE TABLE CP_mensaje(
 idCp_mensaje INT NOT NULL,
 idConsultaPrivada INT NOT NULL,
@@ -168,7 +149,7 @@ INSERT INTO Orientacion_tiene_Grupo VALUES
 (3,5);
 
 INSERT INTO Persona VALUES
-(11111111,'penelope','cruz','clave1',0,NULL,NULL, TRUE),
+(11111111,'penelope','cruz','calve1',0,NULL,NULL, TRUE),
 (22222222,'pepe','red','clave2',0,NULL,NULL, TRUE),
 (33333333,'coco','rock','clave3',0,NULL,NULL, TRUE),
 (44444444,'lex','luther','clave4',0,NULL,NULL, TRUE),
@@ -186,24 +167,24 @@ INSERT INTO Docente (ci) VALUES
 
 INSERT INTO Docente_dicta_G_M VALUES 
 (1,1,77777777),
-(1,2,null),
-(1,4,null),
-(1,5,null),
+(1,2,NULL),
+(1,4,NULL),
+(1,5,NULL),
 (2,6,77777777),
-(2,7,null),
-(2,8,null),
-(2,9,null),
-(2,10,null),
-(3,13,null),
-(3,14,null),
-(4,11,null),
-(4,12,null),
-(4,13,null),
-(4,15,null),
-(5,11,null),
-(5,12,null),
-(5,13,null),
-(5,16,null),
+(2,7,NULL),
+(2,8,NULL),
+(2,9,NULL),
+(2,10,NULL),
+(3,13,NULL),
+(3,14,NULL),
+(4,11,NULL),
+(4,12,NULL),
+(4,13,NULL),
+(4,15,NULL),
+(5,11,NULL),
+(5,12,NULL),
+(5,13,NULL),
+(5,16,NULL),
 (3,11,77777777),
 (1,3,88888888),
 (3,12,88888888);
@@ -214,7 +195,7 @@ INSERT INTO Alumno (ci,apodo) VALUES
 (33333333,'cRock'),
 (44444444,'Lexy'),
 (55555555,'pittt'),
-(66666666,'pig');
+(66666666,'ahumer');
 
 INSERT INTO Alumno_tiene_Grupo VALUES 
 (11111111,1),
@@ -227,7 +208,7 @@ INSERT INTO Alumno_tiene_Grupo VALUES
 (66666666,1),
 (22222222,2),
 (44444444,1);
-
+/*
 INSERT INTO Docente_Conexion(docenteCi,FechaConexion) VALUES
 (77777777,NOW()),
 (88888888,NOW());
@@ -235,7 +216,7 @@ INSERT INTO Docente_Conexion(docenteCi,FechaConexion) VALUES
 INSERT INTO Docente_Desconexion(docenteCi,FechaDesconexion) VALUES
 (77777777,NOW() + INTERVAL 1 DAY),
 (88888888,NOW() + INTERVAL 2 HOUR);
-
+*/
 INSERT INTO ConsultaPrivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus,cpFechaHora) VALUES
 (1,77777777,11111111,'hola','pendiente',NOW()),
 (1,77777777,22222222,'profe hello','pendiente',NOW()),
@@ -247,7 +228,6 @@ INSERT INTO ConsultaPrivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus
 (2,77777777,11111111,'HOLAAAA','pendiente',NOW()),
 (3,77777777,11111111,'todobien?','pendiente',NOW()),
 (4,77777777,11111111,'faltas hoy?','pendiente',NOW());
-
 
 INSERT INTO CP_Mensaje (idCp_mensaje,idConsultaPrivada,ciDocente,ciAlumno,contenido,attachment,cp_mensajeFechaHora,cp_mensajeStatus, ciDestinatario)
 VALUES 
@@ -270,3 +250,18 @@ VALUES
 (2,3,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
 (1,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111);
+
+create user "login"@"localhost" identified by "login";
+grant select (ci) on ultimaDB.Alumno to "login"@"localhost";
+grant select (ci) on ultimaDB.Administrador to "login"@"localhost";
+grant select (ci) on ultimaDB.Docente to "login"@"localhost";
+grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "login"@"localhost";
+
+create user "alumnoDB"@"localhost" identified by "alumnoclave";
+grant all privileges on ultimaDB.* to "alumnoDB"@"localhost";
+
+create user "docenteDB"@"localhost" identified by "docenteclave";
+grant all privileges on ultimaDB.* to "docenteDB"@"localhost";
+
+create user "adminDB"@"localhost" identified by "adminclave";
+grant all privileges on ultimaDB.* to "adminDB"@"localhost";
