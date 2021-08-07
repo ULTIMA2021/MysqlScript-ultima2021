@@ -138,16 +138,16 @@ FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci)
 
 create user "alumnoLogin"@"localhost" identified by "alumnoLogin";
 grant select (ci) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "alumnoLogin"@"localhost";
+grant select on ultimaDB.Persona to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Grupo to "alumnoLogin"@"localhost";
 
 create user "docenteLogin"@"localhost" identified by "docenteLogin";
 grant select (ci) on ultimaDB.Docente to "docenteLogin"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "docenteLogin"@"localhost";
+grant select on ultimaDB.Persona to "docenteLogin"@"localhost";
 
 create user "adminLogin"@"localhost" identified by "adminLogin";
 grant select (ci) on ultimaDB.Administrador to "adminLogin"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "adminLogin"@"localhost";
+grant select on ultimaDB.Persona to "adminLogin"@"localhost";
 
 /****************************************USUARIOS NORMALES DE LA APP*******************************************************************/
 
@@ -246,15 +246,7 @@ INSERT INTO Alumno_tiene_Grupo VALUES
 (66666666,1),
 (22222222,2),
 (44444444,1);
-/*
-INSERT INTO Docente_Conexion(docenteCi,FechaConexion) VALUES
-(77777777,NOW()),
-(88888888,NOW());
 
-INSERT INTO Docente_Desconexion(docenteCi,FechaDesconexion) VALUES
-(77777777,NOW() + INTERVAL 1 DAY),
-(88888888,NOW() + INTERVAL 2 HOUR);
-*/
 INSERT INTO ConsultaPrivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus,cpFechaHora) VALUES
 (1,77777777,11111111,'hola','pendiente',NOW()),
 (1,77777777,22222222,'profe hello','pendiente',NOW()),
