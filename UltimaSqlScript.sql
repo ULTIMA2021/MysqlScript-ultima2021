@@ -2,7 +2,9 @@ DROP DATABASE IF EXISTS ultimaDB;
 CREATE DATABASE ultimaDB;
 USE ultimaDB;
 
-drop user if exists login@"localhost";
+drop user if exists alumnoLogin@"localhost";
+drop user if exists docenteLogin@"localhost";
+drop user if exists adminLogin@"localhost";
 drop user if exists alumnoDB@"localhost";
 drop user if exists docenteDB@"localhost";
 drop user if exists adminDB@"localhost";
@@ -11,10 +13,12 @@ CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreGrupo VARCHAR(10) NOT NULL
 );
+
 CREATE TABLE Materia(
 idMateria INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
 nombreMateria VARCHAR(25) NOT NULL
 );
+
 CREATE TABLE Grupo_tiene_Materia (
     idGrupo INT NOT NULL,
     idMateria INT NOT NULL,
@@ -24,10 +28,12 @@ CREATE TABLE Grupo_tiene_Materia (
     FOREIGN KEY (idMateria)
         REFERENCES Materia (idMateria)
 ); 
+
 CREATE TABLE Orientacion(
 idOrientacion INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreOrientacion VARCHAR(25) NOT NULL
 );
+
 CREATE TABLE Orientacion_tiene_Grupo (
 idOrientacion INT NOT NULL,
 idGrupo INT NOT NULL,
@@ -35,6 +41,7 @@ PRIMARY KEY (idGrupo),
 FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo),
 FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion)
 );
+
 CREATE TABLE Persona (
     ci INT(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
@@ -60,15 +67,17 @@ CREATE TABLE Docente (
     FOREIGN KEY (ci)
         REFERENCES Persona (ci)
 );
-CREATE TABLE PersonaTemp(
+
+/*grupos will be stored as a string and filtered with regular expression*/
+CREATE TABLE AlumnoTemp(
 ci INT(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
     clave VARCHAR(16) NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
-    tipoUser ENUM('alumno','docente','admin'));
-
+    grupos VARCHAR(30) NOT NULL);
+    
 CREATE TABLE Docente_dicta_G_M (
 idGrupo INT NOT NULL,
 idMateria INT NOT NULL,
@@ -125,6 +134,35 @@ FOREIGN KEY (ciDocente) REFERENCES Docente (ci),
 FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci)
 );
 
+/*******************************************USUARIOS PARA LA FORM DE LOGIN/REGISTRO**************************************************/
+
+create user "alumnoLogin"@"localhost" identified by "alumnoLogin";
+grant select (ci) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
+grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "alumnoLogin"@"localhost";
+grant select on ultimaDB.Grupo to "alumnoLogin"@"localhost";
+
+create user "docenteLogin"@"localhost" identified by "docenteLogin";
+grant select (ci) on ultimaDB.Docente to "docenteLogin"@"localhost";
+grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "docenteLogin"@"localhost";
+
+create user "adminLogin"@"localhost" identified by "adminLogin";
+grant select (ci) on ultimaDB.Administrador to "adminLogin"@"localhost";
+grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "adminLogin"@"localhost";
+
+/****************************************USUARIOS NORMALES DE LA APP*******************************************************************/
+
+create user "alumnoDB"@"localhost" identified by "alumnoclave";
+grant all privileges on ultimaDB.* to "alumnoDB"@"localhost";
+
+create user "docenteDB"@"localhost" identified by "docenteclave";
+grant all privileges on ultimaDB.* to "docenteDB"@"localhost";
+
+create user "adminDB"@"localhost" identified by "adminclave";
+grant all privileges on ultimaDB.* to "adminDB"@"localhost";
+
+
+
+/********************************DEMO***********************************************/
 INSERT INTO Grupo (nombreGrupo) VALUES 
 ('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
 
@@ -250,18 +288,3 @@ VALUES
 (2,3,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
 (1,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111);
-
-create user "login"@"localhost" identified by "login";
-grant select (ci) on ultimaDB.Alumno to "login"@"localhost";
-grant select (ci) on ultimaDB.Administrador to "login"@"localhost";
-grant select (ci) on ultimaDB.Docente to "login"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "login"@"localhost";
-
-create user "alumnoDB"@"localhost" identified by "alumnoclave";
-grant all privileges on ultimaDB.* to "alumnoDB"@"localhost";
-
-create user "docenteDB"@"localhost" identified by "docenteclave";
-grant all privileges on ultimaDB.* to "docenteDB"@"localhost";
-
-create user "adminDB"@"localhost" identified by "adminclave";
-grant all privileges on ultimaDB.* to "adminDB"@"localhost";
