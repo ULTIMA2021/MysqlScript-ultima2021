@@ -140,6 +140,7 @@ create user "alumnoLogin"@"localhost" identified by "alumnoLogin";
 grant select (ci) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Persona to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Grupo to "alumnoLogin"@"localhost";
+grant insert on ultimaDB.AlumnoTemp to "alumnoLogin"@"localhost";
 
 create user "docenteLogin"@"localhost" identified by "docenteLogin";
 grant select (ci) on ultimaDB.Docente to "docenteLogin"@"localhost";
