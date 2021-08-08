@@ -46,7 +46,7 @@ CREATE TABLE Persona (
     ci INT(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
-    clave VARCHAR(16) NOT NULL ,
+    clave VARCHAR(32) NOT NULL ,
     isDeleted BOOL NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
@@ -73,9 +73,10 @@ CREATE TABLE AlumnoTemp(
 ci INT(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
-    clave VARCHAR(16) NOT NULL,
+    clave VARCHAR(32) NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
+    apodo VARCHAR(20) UNIQUE,
     grupos VARCHAR(30) NOT NULL);
     
 CREATE TABLE Docente_dicta_G_M (
@@ -122,7 +123,7 @@ idCp_mensaje INT NOT NULL,
 idConsultaPrivada INT NOT NULL,
 ciAlumno INT NOT NULL,
 ciDocente INT NOT NULL,
-contenido VARCHAR(1000) NOT NULL,
+contenido VARCHAR(10000) NOT NULL,
 attachment MEDIUMBLOB,
 cp_mensajeFechaHora DATETIME NOT NULL,
 cp_mensajeStatus ENUM('recibido','leido'),
@@ -188,7 +189,7 @@ INSERT INTO Orientacion_tiene_Grupo VALUES
 (3,5);
 
 INSERT INTO Persona VALUES
-(11111111,'penelope','cruz','calve1',0,NULL,NULL, TRUE),
+(11111111,'penelope','cruz','clave1',0,NULL,NULL, TRUE),
 (22222222,'pepe','red','clave2',0,NULL,NULL, TRUE),
 (33333333,'coco','rock','clave3',0,NULL,NULL, TRUE),
 (44444444,'lex','luther','clave4',0,NULL,NULL, TRUE),
@@ -203,6 +204,7 @@ INSERT INTO Administrador(ci) VALUES (99999999);
 INSERT INTO Docente (ci) VALUES
 (77777777),
 (88888888);
+
 
 INSERT INTO Docente_dicta_G_M VALUES 
 (1,1,77777777),
