@@ -8,6 +8,34 @@ drop user if exists adminLogin@"localhost";
 drop user if exists alumnoDB@"localhost";
 drop user if exists docenteDB@"localhost";
 drop user if exists adminDB@"localhost";
+/*
+CREATE TABLE checker_hack ( 
+    i tinyint,
+    test varchar(23),
+    i_must_be_between_7_and_12 BOOLEAN 
+         GENERATED ALWAYS AS (IF(i BETWEEN 7 AND 12, true, NULL)) 
+         VIRTUAL NOT NULL
+);
+select * from checker_hack;
+INSERT INTO checker_hack (i) VALUES (12);
+delimiter $$
+CREATE TRIGGER emptyString BEFORE INSERT ON Persona
+       FOR EACH ROW
+       chk: Begin 
+       IF(Persona.nombre = '   ') THEN
+       SET NEW.nombre=null;
+       END IF; 
+       IF(Persona.apellido = '   ') THEN
+       SET NEW.apellido=null;
+       END IF;
+       
+       END $$
+       
+delimiter ;
+       
+INSERT INTO persona VALUES(111111,'asd','sddd','clave1',0,NULL,NULL, TRUE);
+select * from persona;
+*/
 
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -44,14 +72,37 @@ FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion)
 
 CREATE TABLE Persona (
     ci INT(8) PRIMARY KEY NOT NULL,
-    nombre VARCHAR(20) NOT NULL,
-    apellido VARCHAR(20) NOT NULL,
+    nombre VARCHAR(26) NOT NULL,
+    apellido VARCHAR(26) NOT NULL,
     clave VARCHAR(32) NOT NULL ,
     isDeleted BOOL NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
-    enLinea BOOL NOT NULL
+    enLinea BOOL NOT NULL,
+    CONSTRAINT notIn5point7 CHECK (ci between 10000000 AND 99999999),
+    CONSTRAINT notIn5point72 CHECK (nombre regexp "^[a-zA-Z]+$"),
+    CONSTRAINT notIn5point713 CHECK (apellido regexp "^[a-zA-Z]+$")
 );
+
+/* 
+       IF(NEW.nombre not REGEXP '[:alpha:]') THEN
+DECLARE start  INT unsigned DEFAULT 1; 
+drop trigger emptyString;
+delimiter $$
+CREATE TRIGGER emptyString BEFORE INSERT ON Persona
+       FOR EACH ROW
+       Begin 
+       IF(NEW.nombre not like '[a-z]') THEN
+			SET NEW.nombre=null;
+       END IF; 
+       IF(NEW.apellido  REGEXP '[0-9]') THEN
+       SET NEW.apellido=null;
+       END IF;
+       END $$
+delimiter ;
+INSERT INTO Persona Values (111,"abcdefghijklmnopqrstuvwxyz","ab","clave1",false,null,null,false);
+numbers OR symbols
+*/
 
 CREATE TABLE Administrador (
     ci INT NOT NULL UNIQUE,
@@ -70,14 +121,17 @@ CREATE TABLE Docente (
 
 /*grupos will be stored as a string and filtered with regular expression*/
 CREATE TABLE AlumnoTemp(
-ci INT(8) PRIMARY KEY NOT NULL,
+ci INT(8) PRIMARY KEY NOT NULL ,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
     clave VARCHAR(32) NOT NULL,
     foto BLOB  NULL,
     avatar BLOB  NULL,
     apodo VARCHAR(20) UNIQUE,
-    grupos VARCHAR(30) NOT NULL);
+    grupos VARCHAR(30) NOT NULL,
+	CONSTRAINT d CHECK (ci between 10000000 AND 99999999),
+    CONSTRAINT adsa CHECK (nombre regexp "^[a-zA-Z]+$"),
+    CONSTRAINT sadddas CHECK (apellido regexp "^[a-zA-Z]+$"));
     
 CREATE TABLE Docente_dicta_G_M (
 idGrupo INT NOT NULL,
@@ -90,7 +144,7 @@ FOREIGN KEY (docenteCi) REFERENCES Docente (ci)
 );
 
 CREATE TABLE Alumno (
-  ci INT NOT NULL,
+  ci INT(8) NOT NULL,
     idAlumno INT NOT NULL AUTO_INCREMENT,
     apodo VARCHAR(20) UNIQUE,
     PRIMARY KEY(idAlumno,ci),
@@ -116,8 +170,8 @@ CREATE TABLE ConsultaPrivada (
     FOREIGN KEY (docenteCi)
         REFERENCES Docente (ci),
     FOREIGN KEY (alumnoCi)
-        REFERENCES Alumno (ci)
-        );
+        REFERENCES Alumno (ci));
+        
 CREATE TABLE CP_mensaje(
 idCp_mensaje INT NOT NULL,
 idConsultaPrivada INT NOT NULL,
@@ -132,8 +186,7 @@ PRIMARY KEY(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
 FOREIGN KEY (idConsultaPrivada) REFERENCES ConsultaPrivada (idConsultaPrivada),
 FOREIGN KEY (ciAlumno) REFERENCES Alumno (ci),
 FOREIGN KEY (ciDocente) REFERENCES Docente (ci),
-FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci)
-);
+FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci));
 
 /*******************************************USUARIOS PARA LA FORM DE LOGIN/REGISTRO**************************************************/
 
@@ -189,7 +242,7 @@ INSERT INTO Orientacion_tiene_Grupo VALUES
 (3,5);
 
 INSERT INTO Persona VALUES
-(11111111,'penelope','cruz','clave1',0,NULL,NULL, TRUE),
+(11111111,'Penelope','cruz','clave1',0,NULL,NULL, TRUE),
 (22222222,'pepe','red','clave2',0,NULL,NULL, TRUE),
 (33333333,'coco','rock','clave3',0,NULL,NULL, TRUE),
 (44444444,'lex','luther','clave4',0,NULL,NULL, TRUE),
