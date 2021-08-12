@@ -8,34 +8,6 @@ drop user if exists adminLogin@"localhost";
 drop user if exists alumnoDB@"localhost";
 drop user if exists docenteDB@"localhost";
 drop user if exists adminDB@"localhost";
-/*
-CREATE TABLE checker_hack ( 
-    i tinyint,
-    test varchar(23),
-    i_must_be_between_7_and_12 BOOLEAN 
-         GENERATED ALWAYS AS (IF(i BETWEEN 7 AND 12, true, NULL)) 
-         VIRTUAL NOT NULL
-);
-select * from checker_hack;
-INSERT INTO checker_hack (i) VALUES (12);
-delimiter $$
-CREATE TRIGGER emptyString BEFORE INSERT ON Persona
-       FOR EACH ROW
-       chk: Begin 
-       IF(Persona.nombre = '   ') THEN
-       SET NEW.nombre=null;
-       END IF; 
-       IF(Persona.apellido = '   ') THEN
-       SET NEW.apellido=null;
-       END IF;
-       
-       END $$
-       
-delimiter ;
-       
-INSERT INTO persona VALUES(111111,'asd','sddd','clave1',0,NULL,NULL, TRUE);
-select * from persona;
-*/
 
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -87,6 +59,7 @@ CREATE TABLE Persona (
 /* 
        IF(NEW.nombre not REGEXP '[:alpha:]') THEN
 DECLARE start  INT unsigned DEFAULT 1; 
+
 drop trigger emptyString;
 delimiter $$
 CREATE TRIGGER emptyString BEFORE INSERT ON Persona
@@ -111,6 +84,27 @@ CREATE TABLE Administrador (
     FOREIGN KEY (ci)
         REFERENCES persona (ci)
 );
+delimiter $$
+CREATE TRIGGER adminLogging BEFORE INSERT ON Administrador 
+FOR EACH ROW
+BEGIN
+SET @usr = (substring_index((SELECT USER()),"@",1));
+IF @usr = "adminLogin" THEN
+	SET @clave = (SELECT p.clave FROM Administrador a,Persona p WHERE NEW.ci=p.ci AND NEW.ci=a.ci AND NEW.idAdmin=p.clave);
+    -- no use un switch aca porque no se puede comparar a null en un case
+IF @clave IS NULL THEN 
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="failed";  -- clave not found
+	ELSE
+		IF @clave IS NOT NULL THEN
+			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="good"; -- clave found 
+		else
+			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="UnkownMysqlException"; -- some strange shit happened
+        END IF;
+	END IF;
+END IF;
+END$$
+delimiter ;
+
 CREATE TABLE Docente (
 	ci INT NOT NULL UNIQUE,
     idDocente INT NOT NULL AUTO_INCREMENT,
@@ -118,6 +112,26 @@ CREATE TABLE Docente (
     FOREIGN KEY (ci)
         REFERENCES Persona (ci)
 );
+delimiter $$
+CREATE TRIGGER docenteLogging BEFORE INSERT ON Docente 
+FOR EACH ROW
+BEGIN
+SET @usr = (substring_index((SELECT USER()),"@",1));
+IF @usr = "docenteLogin" THEN
+	SET @clave = (SELECT p.clave FROM Docente d,Persona p WHERE NEW.ci=p.ci AND NEW.ci=d.ci AND NEW.idDocente=p.clave);
+    -- no use un switch aca porque no se puede comparar a null en un case
+IF @clave IS NULL THEN 
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="failed";  -- clave not found
+	ELSE
+		IF @clave IS NOT NULL THEN
+			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="good"; -- clave found 
+		else
+			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="UnkownMysqlException"; -- some strange shit happened
+        END IF;
+	END IF;
+END IF;
+END$$
+delimiter ;
 
 /*grupos will be stored as a string and filtered with regular expression*/
 CREATE TABLE AlumnoTemp(
@@ -129,9 +143,9 @@ ci INT(8) PRIMARY KEY NOT NULL ,
     avatar BLOB  NULL,
     apodo VARCHAR(20) UNIQUE,
     grupos VARCHAR(30) NOT NULL,
-	CONSTRAINT d CHECK (ci between 10000000 AND 99999999),
-    CONSTRAINT adsa CHECK (nombre regexp "^[a-zA-Z]+$"),
-    CONSTRAINT sadddas CHECK (apellido regexp "^[a-zA-Z]+$"));
+	CONSTRAINT ATciCheck CHECK (ci between 10000000 AND 99999999),
+    CONSTRAINT ATnombreCheck CHECK (nombre regexp "^[a-zA-Z]+$"),
+    CONSTRAINT ATapellidoCheck CHECK (apellido regexp "^[a-zA-Z]+$"));
     
 CREATE TABLE Docente_dicta_G_M (
 idGrupo INT NOT NULL,
@@ -144,13 +158,36 @@ FOREIGN KEY (docenteCi) REFERENCES Docente (ci)
 );
 
 CREATE TABLE Alumno (
-  ci INT(8) NOT NULL,
+  ci INT(8) UNIQUE NOT NULL,
     idAlumno INT NOT NULL AUTO_INCREMENT,
-    apodo VARCHAR(20) UNIQUE,
+    apodo VARCHAR(20) UNIQUE NOT NULL,
     PRIMARY KEY(idAlumno,ci),
     FOREIGN KEY (ci)
         REFERENCES Persona (ci)
 );
+-- I need to pass the clave unencrypted and find a way to compare the 2 claves here in the database unencrypted
+-- or encrypt the txt in the app and compare the encrypted claves here, dunno if thats possible
+-- set a plain key and IV and enter a password twice to see if the encrypter gives the same encryption to both pwd's
+delimiter $$
+CREATE TRIGGER alumnoLogging BEFORE INSERT ON Alumno 
+FOR EACH ROW
+BEGIN
+SET @usr = (substring_index((SELECT USER()),"@",1));
+IF @usr = "alumnoLogin" THEN
+	SET @clave = (SELECT p.clave FROM Alumno a,Persona p WHERE NEW.ci=p.ci AND NEW.ci=a.ci AND NEW.apodo=p.clave);
+IF @clave IS NULL THEN 
+        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="failed";  -- clave not found
+	ELSE
+		IF @clave IS NOT NULL THEN
+			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="good"; -- clave found 
+		ELSE
+			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="UnkownMysqlException"; -- some strange shit happened
+        END IF;
+	END IF;
+END IF;
+END$$
+delimiter ;
+
 CREATE TABLE Alumno_tiene_Grupo(
 alumnoCi INT NOT NULL,
 idGrupo INT NOT NULL,
@@ -191,16 +228,19 @@ FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci));
 /*******************************************USUARIOS PARA LA FORM DE LOGIN/REGISTRO**************************************************/
 
 create user "alumnoLogin"@"localhost" identified by "alumnoLogin";
+grant insert (ci,apodo) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
 grant select (ci) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Persona to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Grupo to "alumnoLogin"@"localhost";
 grant insert on ultimaDB.AlumnoTemp to "alumnoLogin"@"localhost";
 
 create user "docenteLogin"@"localhost" identified by "docenteLogin";
+grant insert (ci,idDocente) on ultimaDB.Docente to "docenteLogin"@"localhost";
 grant select (ci) on ultimaDB.Docente to "docenteLogin"@"localhost";
 grant select on ultimaDB.Persona to "docenteLogin"@"localhost";
 
 create user "adminLogin"@"localhost" identified by "adminLogin";
+grant insert (ci,idAdmin) on ultimaDB.Administrador to "adminLogin"@"localhost";
 grant select (ci) on ultimaDB.Administrador to "adminLogin"@"localhost";
 grant select on ultimaDB.Persona to "adminLogin"@"localhost";
 
