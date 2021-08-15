@@ -56,27 +56,6 @@ CREATE TABLE Persona (
     CONSTRAINT notIn5point713 CHECK (apellido regexp "^[a-zA-Z]+$")
 );
 
-/* 
-       IF(NEW.nombre not REGEXP '[:alpha:]') THEN
-DECLARE start  INT unsigned DEFAULT 1; 
-
-drop trigger emptyString;
-delimiter $$
-CREATE TRIGGER emptyString BEFORE INSERT ON Persona
-       FOR EACH ROW
-       Begin 
-       IF(NEW.nombre not like '[a-z]') THEN
-			SET NEW.nombre=null;
-       END IF; 
-       IF(NEW.apellido  REGEXP '[0-9]') THEN
-       SET NEW.apellido=null;
-       END IF;
-       END $$
-delimiter ;
-INSERT INTO Persona Values (111,"abcdefghijklmnopqrstuvwxyz","ab","clave1",false,null,null,false);
-numbers OR symbols
-*/
-
 CREATE TABLE Administrador (
     ci INT NOT NULL UNIQUE,
     idAdmin INT NOT NULL AUTO_INCREMENT,
@@ -84,6 +63,7 @@ CREATE TABLE Administrador (
     FOREIGN KEY (ci)
         REFERENCES persona (ci)
 );
+/*
 delimiter $$
 CREATE TRIGGER adminLogging BEFORE INSERT ON Administrador 
 FOR EACH ROW
@@ -104,7 +84,7 @@ IF @clave IS NULL THEN
 END IF;
 END$$
 delimiter ;
-
+*/
 CREATE TABLE Docente (
 	ci INT NOT NULL UNIQUE,
     idDocente INT NOT NULL AUTO_INCREMENT,
@@ -112,27 +92,6 @@ CREATE TABLE Docente (
     FOREIGN KEY (ci)
         REFERENCES Persona (ci)
 );
-delimiter $$
-CREATE TRIGGER docenteLogging BEFORE INSERT ON Docente 
-FOR EACH ROW
-BEGIN
-SET @usr = (substring_index((SELECT USER()),"@",1));
-IF @usr = "docenteLogin" THEN
-	SET @clave = (SELECT p.clave FROM Docente d,Persona p WHERE NEW.ci=p.ci AND NEW.ci=d.ci AND NEW.idDocente=p.clave);
-    -- no use un switch aca porque no se puede comparar a null en un case
-IF @clave IS NULL THEN 
-        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="failed";  -- clave not found
-	ELSE
-		IF @clave IS NOT NULL THEN
-			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="good"; -- clave found 
-		else
-			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="UnkownMysqlException"; -- some strange shit happened
-        END IF;
-	END IF;
-END IF;
-END$$
-delimiter ;
-
 /*grupos will be stored as a string and filtered with regular expression*/
 CREATE TABLE AlumnoTemp(
 ci INT(8) PRIMARY KEY NOT NULL ,
@@ -165,28 +124,6 @@ CREATE TABLE Alumno (
     FOREIGN KEY (ci)
         REFERENCES Persona (ci)
 );
--- I need to pass the clave unencrypted and find a way to compare the 2 claves here in the database unencrypted
--- or encrypt the txt in the app and compare the encrypted claves here, dunno if thats possible
--- set a plain key and IV and enter a password twice to see if the encrypter gives the same encryption to both pwd's
-delimiter $$
-CREATE TRIGGER alumnoLogging BEFORE INSERT ON Alumno 
-FOR EACH ROW
-BEGIN
-SET @usr = (substring_index((SELECT USER()),"@",1));
-IF @usr = "alumnoLogin" THEN
-	SET @clave = (SELECT p.clave FROM Alumno a,Persona p WHERE NEW.ci=p.ci AND NEW.ci=a.ci AND NEW.apodo=p.clave);
-IF @clave IS NULL THEN 
-        SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="failed";  -- clave not found
-	ELSE
-		IF @clave IS NOT NULL THEN
-			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="good"; -- clave found 
-		ELSE
-			SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="UnkownMysqlException"; -- some strange shit happened
-        END IF;
-	END IF;
-END IF;
-END$$
-delimiter ;
 
 CREATE TABLE Alumno_tiene_Grupo(
 alumnoCi INT NOT NULL,
@@ -225,10 +162,47 @@ FOREIGN KEY (ciAlumno) REFERENCES Alumno (ci),
 FOREIGN KEY (ciDocente) REFERENCES Docente (ci),
 FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci));
 
-/*******************************************USUARIOS PARA LA FORM DE LOGIN/REGISTRO**************************************************/
+CREATE TABLE Sala(
+idSala INT UNSIGNED NOT NULL AUTO_INCREMENT,
+idGrupo INT NOT NULL,
+idMateria INT NOT NULL,
+docenteCi INT NOT NULL,
+anfitrion INT NOT NULL,
+resumen VARCHAR(1000) NULL,
+isDone BOOL DEFAULT FALSE NOT NULL,
+PRIMARY KEY (idSala, idGrupo, idMateria, docenteCi),
+FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo),
+FOREIGN KEY (idMateria) REFERENCES Materia (idMateria),
+FOREIGN KEY (docenteCi) REFERENCES Docente (ci),
+FOREIGN KEY (anfitrion) REFERENCES Persona (ci)
+);
 
+CREATE TABLE Sala_members(
+idSala INT UNSIGNED NOT NULL,
+ci INT NOT NULL,
+isConnected BOOL DEFAULT FALSE NOT NULL,
+PRIMARY KEY (idSala,ci),
+FOREIGN KEY (idSala) REFERENCES Sala (idSala),
+FOREIGN KEY (ci) REFERENCES Persona (ci));
+
+CREATE TABLE Sala_mensaje(
+idSala INT UNSIGNED NOT NULL,
+idMensaje INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
+autorCi INT NOT NULL,
+contenido VARCHAR(5000) NOT NULL,
+fechaHora DATETIME NOT NULL,
+FOREIGN KEY (idSala) REFERENCES Sala (idSala),
+FOREIGN KEY (autorCi) REFERENCES Persona (ci));
+
+/*
+-- in last and change idSala to the id you want to search for
+-- me trae la lista de personas conectadas o no a una sala 
+SELECT * from Persona p, Sala_Member sm, Grupo g, Sala s, WHERE 
+p.ci=sm.ci AND s.idGrupo=g.idGrupo AND s.idSala=sm.idSala; 
+*/
+
+/*******************************************USUARIOS PARA LA FORM DE LOGIN/REGISTRO**************************************************/
 create user "alumnoLogin"@"localhost" identified by "alumnoLogin";
-grant insert (ci,apodo) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
 grant select (ci) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Persona to "alumnoLogin"@"localhost";
 grant select on ultimaDB.Grupo to "alumnoLogin"@"localhost";
@@ -258,6 +232,7 @@ grant all privileges on ultimaDB.* to "adminDB"@"localhost";
 
 
 /********************************DEMO***********************************************/
+
 INSERT INTO Grupo (nombreGrupo) VALUES 
 ('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
 
@@ -298,8 +273,7 @@ INSERT INTO Docente (ci) VALUES
 (77777777),
 (88888888);
 
-
-INSERT INTO Docente_dicta_G_M VALUES 
+INSERT INTO Docente_dicta_G_M VALUES
 (1,1,77777777),
 (1,2,NULL),
 (1,4,NULL),
@@ -324,7 +298,7 @@ INSERT INTO Docente_dicta_G_M VALUES
 (3,12,88888888);
 
 INSERT INTO Alumno (ci,apodo) VALUES
-(11111111,'fefito'),
+(11111111,'cruzzz'),
 (22222222,'pRed'),
 (33333333,'cRock'),
 (44444444,'Lexy'),
@@ -376,3 +350,103 @@ VALUES
 (2,3,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
 (1,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111);
+
+INSERT INTO Sala (idGrupo,idMateria,docenteCi,anfitrion,resumen) VALUES
+(1,1,77777777,11111111,"se hablo del prat 1 de polinomios"),
+
+(2,6,77777777,77777777,"revisamos el ejercicio 10 de prat 2"),
+(2,6,77777777,77777777,"revision primer escrito"),
+(2,6,77777777,77777777,"demostracion rufini"),
+
+(3,11,77777777,77777777,"E.A y R.G de 1/x"),
+(3,11,77777777,77777777,"dudas prat1"),
+(3,11,77777777,77777777,"dudas prat2"),
+
+(1,3,88888888,88888888,"intro a java"),
+(1,3,88888888,88888888,"intro de programacion orientada a objetos"),
+(1,3,88888888,88888888,"estructuras repetitivas"),
+(1,3,88888888,88888888,"condicionales"),
+
+(3,12,88888888,88888888,"INTRO A C#"),
+(3,12,88888888,88888888,"Capas de datos"),
+(3,12,88888888,88888888,"calculadora en c#"),
+(3,12,88888888,88888888,"ejemplo de conexion a base de datos c#");
+
+-- mirar a alumnoTieneGrupo y docentedictaGM
+INSERT INTO Sala_Members (idSala,ci) VALUES 
+(1,11111111),(1,33333333),(1,44444444),(1,66666666),(1,77777777),
+
+(2,11111111),(2,22222222),(2,44444444),(2,77777777),
+
+(3,11111111),(3,22222222),(3,77777777),
+
+(4,11111111),(4,22222222),(4,77777777),
+
+(5,22222222),(5,66666666),(5,77777777),
+
+(6,22222222),(6,66666666),(6,77777777),
+
+(7,22222222),(7,66666666),(7,77777777),
+
+(8,11111111),(8,33333333),(8,44444444),(8,66666666),(8,88888888),
+
+(9,11111111),(9,33333333),(9,44444444),(9,66666666),(9,88888888),
+
+(10,11111111),(10,33333333),(10,44444444),(10,66666666),(10,88888888),
+
+(11,11111111),(11,33333333),(11,44444444),(11,66666666),(11,88888888),
+
+(12,22222222),(12,66666666),(12,88888888),
+
+(13,22222222),(13,66666666),(13,88888888),
+
+(14,22222222),(14,66666666),(14,88888888),
+
+(15,22222222),(15,66666666),(15,88888888);
+
+INSERT INTO Sala_mensaje (idSala,autorCi,contenido,fechaHora) VALUES 
+(1,11111111,"Hola podemos discutir lo del prat 1?", DATE(DATE_SUB(NOW(), INTERVAL -5 DAY))),
+(1,77777777,"sii pregunta nomas y yo les contesto ",  DATE(DATE_SUB(NOW(), INTERVAL -2 DAY))),
+
+(2,77777777,"buenas chicoos", DATE(DATE_SUB(NOW(), INTERVAL -15 DAY))),
+(2,77777777,"Hoy vamos a hacer x cosa", DATE(DATE_SUB(NOW(), INTERVAL -10 DAY))),
+
+(3,77777777,"hola son el grupo 3ro?", DATE(DATE_SUB(NOW(), INTERVAL -4 DAY))),
+
+(4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL -10 DAY))),
+(4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL -5 DAY)))
+/*
+,(5,77777777,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(5,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(6,77777777,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(6,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(7,77777777,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(7,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(8,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(8,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(9,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(9,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(10,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(10,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(11,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(11,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(12,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(12,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(13,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(13,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(14,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(14,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+
+(15,11111111,"Hola podemos discutir lo del prat 1?", curdate()-10day),
+(15,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
+*/
+;
