@@ -170,6 +170,7 @@ docenteCi INT NOT NULL,
 anfitrion INT NOT NULL,
 resumen VARCHAR(1000) NULL,
 isDone BOOL DEFAULT FALSE NOT NULL,
+creacion DATETIME NOT NULL,
 PRIMARY KEY (idSala, idGrupo, idMateria, docenteCi),
 FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo),
 FOREIGN KEY (idMateria) REFERENCES Materia (idMateria),
@@ -185,6 +186,7 @@ PRIMARY KEY (idSala,ci),
 FOREIGN KEY (idSala) REFERENCES Sala (idSala),
 FOREIGN KEY (ci) REFERENCES Persona (ci));
 
+
 CREATE TABLE Sala_mensaje(
 idSala INT UNSIGNED NOT NULL,
 idMensaje INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -193,6 +195,7 @@ contenido VARCHAR(5000) NOT NULL,
 fechaHora DATETIME NOT NULL,
 FOREIGN KEY (idSala) REFERENCES Sala (idSala),
 FOREIGN KEY (autorCi) REFERENCES Persona (ci));
+
 
 /*
 -- in last and change idSala to the id you want to search for
@@ -351,26 +354,26 @@ VALUES
 (1,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
 (2,4,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111);
 
-INSERT INTO Sala (idGrupo,idMateria,docenteCi,anfitrion,resumen) VALUES
-(1,1,77777777,11111111,"se hablo del prat 1 de polinomios"),
+INSERT INTO Sala (idGrupo,idMateria,docenteCi,anfitrion,resumen,creacion,isDone) VALUES
+(1,1,77777777,11111111,"se hablo del prat 1 de polinomios",DATE(DATE_SUB(NOW(), INTERVAL -6 DAY)),false),
 
-(2,6,77777777,77777777,"revisamos el ejercicio 10 de prat 2"),
-(2,6,77777777,77777777,"revision primer escrito"),
-(2,6,77777777,77777777,"demostracion rufini"),
+(2,6,77777777,77777777,"revisamos el ejercicio 10 de prat 2",DATE(DATE_SUB(NOW(), INTERVAL -16 DAY)),true),
+(2,6,77777777,77777777,"revision primer escrito", DATE(DATE_SUB(NOW(), INTERVAL -11 DAY)),true),
+(2,6,77777777,77777777,"demostracion rufini", DATE(DATE_SUB(NOW(), INTERVAL -11 DAY)),true),
 
-(3,11,77777777,77777777,"E.A y R.G de 1/x"),
-(3,11,77777777,77777777,"dudas prat1"),
-(3,11,77777777,77777777,"dudas prat2"),
+(3,11,77777777,77777777,"E.A y R.G de 1/x", DATE(DATE_SUB(NOW(), INTERVAL -10 DAY)),true),
+(3,11,77777777,77777777,"dudas prat1", DATE(DATE_SUB(NOW(), INTERVAL -9 DAY)),true),
+(3,11,77777777,77777777,"dudas prat2", DATE(DATE_SUB(NOW(), INTERVAL -8 DAY)),false),
 
-(1,3,88888888,88888888,"intro a java"),
-(1,3,88888888,88888888,"intro de programacion orientada a objetos"),
-(1,3,88888888,88888888,"estructuras repetitivas"),
-(1,3,88888888,88888888,"condicionales"),
+(1,3,88888888,88888888,"intro a java", DATE(DATE_SUB(NOW(), INTERVAL -7 DAY)),true),
+(1,3,88888888,88888888,"intro de programacion orientada a objetos", DATE(DATE_SUB(NOW(), INTERVAL -6 DAY)),true),
+(1,3,88888888,88888888,"estructuras repetitivas", DATE(DATE_SUB(NOW(), INTERVAL -5 DAY)),true),
+(1,3,88888888,88888888,"condicionales", DATE(DATE_SUB(NOW(), INTERVAL -4 DAY)),false),
 
-(3,12,88888888,88888888,"INTRO A C#"),
-(3,12,88888888,88888888,"Capas de datos"),
-(3,12,88888888,88888888,"calculadora en c#"),
-(3,12,88888888,88888888,"ejemplo de conexion a base de datos c#");
+(3,12,88888888,88888888,"INTRO A C#", DATE(DATE_SUB(NOW(), INTERVAL -3 DAY)),true),
+(3,12,88888888,88888888,"Capas de datos", DATE(DATE_SUB(NOW(), INTERVAL -2 DAY)),true),
+(3,12,88888888,88888888,"calculadora en c#", DATE(DATE_SUB(NOW(), INTERVAL -1 DAY)),true),
+(3,12,88888888,88888888,"ejemplo de conexion a base de datos c#", DATE(DATE_SUB(NOW(), INTERVAL -5 HOUR)),false);
 
 -- mirar a alumnoTieneGrupo y docentedictaGM
 INSERT INTO Sala_Members (idSala,ci) VALUES 
@@ -414,7 +417,7 @@ INSERT INTO Sala_mensaje (idSala,autorCi,contenido,fechaHora) VALUES
 (3,77777777,"hola son el grupo 3ro?", DATE(DATE_SUB(NOW(), INTERVAL -4 DAY))),
 
 (4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL -10 DAY))),
-(4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL -5 DAY)))
+(4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elgna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL -5 DAY)))
 /*
 ,(5,77777777,"Hola podemos discutir lo del prat 1?", curdate()-10day),
 (5,77777777,"sii pregunta nomas y yo les contesto ", curdate()-5day),
