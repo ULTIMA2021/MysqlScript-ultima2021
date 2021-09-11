@@ -1,9 +1,27 @@
 DROP DATABASE IF EXISTS ultimaDB;
-CREATE DATABASE ultimaDB;
+CREATE DATABASE ultimaDB
+CHARACTER SET=utf8mb4
+COLLATE= utf8mb4_unicode_ci;
 USE ultimaDB;
 
 -- consultas pedidas por docente
 /*
+-- logs de una persona
+SET @CIpersona = 77777777;
+SELECT p.ci, p.nombre, p.apellido, L.login, L.logout 
+FROM userLogs L, Persona p
+WHERE p.ci = @CIpersona AND L.ci = @CIpersona;
+
+-- logs de una persona en alguna fecha NOSE PORQUE NO FUNCIONA
+SET @CIpersona = 77777777;
+SET @fecha = "2021-09-10";
+select * from userLogs;
+
+SELECT p.ci, p.nombre, p.apellido, L.login, L.logout 
+FROM userLogs L, Persona p
+WHERE p.ci = @CIpersona AND L.ci = @CIpersona 
+AND L.login >= @fecha AND L.logout <= @fecha;
+
 -- check who's online
 SELECT p.ci,p.nombre,p.apellido 
 FROM persona p 
@@ -142,13 +160,12 @@ CREATE TABLE Persona (
     
 CREATE TABLE userLogs (
     ci CHAR(8) NOT NULL,
-    login datetime NOT NULL,
-	logOut datetime NULL,
+    login DATETIME NOT NULL,
+	logOut DATETIME NULL,
     INDEX (ci),
     FOREIGN KEY (ci)
         REFERENCES Persona (ci));
-    
--- sacar esto, admin logins con el nombre/clave de usuario de la base    
+   
 CREATE TABLE Administrador (
     ci CHAR(8) NOT NULL UNIQUE,
     PRIMARY KEY (ci),
@@ -165,14 +182,16 @@ CREATE TABLE Docente (
 );
 /*
 uses military time 
-
+0-2400
 if timeStart not null then 
 timeEnd must have a value
 
-timeEnd must be after timeStart so greater than
+timeEnd must be after timeStart so 
+timeEnd>timeStart
 
-there shouldnt be time ranges overlapping, but i guess wwe can just leave it as is if it gets too annoying 
 */
+
+-- 0 = sunday ... 6 = saturday
 CREATE TABLE Horario (
     ci CHAR(8) NOT NULL,
     dia TINYINT(1) UNSIGNED NULL,
@@ -182,8 +201,9 @@ CREATE TABLE Horario (
     FOREIGN KEY (ci)
         REFERENCES Docente (ci)
 );
-
-/*grupos will be stored as a string and filtered with regular expression*/
+ 
+ 
+ -- grupos will be stored as a string and filtered with regular expression
 CREATE TABLE AlumnoTemp (
     ci CHAR(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
@@ -295,19 +315,20 @@ INDEX (idSala),
 FOREIGN KEY (idSala) REFERENCES Sala (idSala),
 FOREIGN KEY (autorCi) REFERENCES Persona (ci));
 
+-- ********************************************TRIGGERS
 delimiter $$
 CREATE TRIGGER loadMembersToSala AFTER INSERT ON Sala 
 FOR EACH ROW
 BEGIN
-INSERT INTO Sala_members(idSala,ci,isConnected) SELECT NEW.idSala,alumnoCi,false FROM alumno_tiene_Grupo WHERE idGrupo=NEW.idGrupo;
-INSERT INTO Sala_members(idSala,ci,isConnected) VALUES (NEW.idSala,NEW.docenteCi,false);
+INSERT INTO Sala_members(idSala,ci,isConnected) SELECT NEW.idSala,alumnoCi,FALSE FROM alumno_tiene_Grupo WHERE idGrupo=NEW.idGrupo;
+INSERT INTO Sala_members(idSala,ci,isConnected) VALUES (NEW.idSala,NEW.docenteCi,FALSE);
 END$$
 
 CREATE TRIGGER checkData BEFORE INSERT ON Persona 
 FOR EACH ROW
 BEGIN
-set @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido regexp "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
-set @lengthCi= length(NEW.ci);
+SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
+SET @lengthCi= LENGTH(NEW.ci);
 IF @chartype> 0 OR @lengthCi !=8 THEN 
 	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="invalid characters";
 END IF;
@@ -316,137 +337,156 @@ END$$
 CREATE TRIGGER checkDataNewAlumno BEFORE INSERT ON AlumnoTemp 
 FOR EACH ROW
 BEGIN
-set @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido regexp "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
-set @lengthCi= length(NEW.ci);
+SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
+SET @lengthCi= LENGTH(NEW.ci);
 IF @chartype> 0 OR @lengthCi !=8 THEN 
 	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="invalid characters";
 END IF;
 END$$
 
+-- para crear nuevos logs y cerrar sesiones que no se cerraron correctamente sin usar un daemon
+-- cuando una persona logs in su estado de enLinea se cambia a true
+drop trigger userHasLogged;
+delimiter $$
+CREATE TRIGGER userHasLogged BEFORE UPDATE ON Persona
+FOR EACH ROW
+BEGIN
+SET @count = (SELECT COUNT(*) FROM userLogs WHERE ci=NEW.ci);
+SET @old = (SELECT logout FROM userLogs WHERE ci=NEW.ci AND logout IS NULL); 
+IF NEW.enLinea = true THEN
+	IF (@old IS NULL AND @count !=0) THEN 
+		UPDATE userLogs SET logout=now() WHERE ci= NEW.ci AND logout IS NULL;
+        INSERT INTO userLogs (ci, login, logout) VALUES (NEW.ci, now(), null);
+	END IF;
+    ELSE IF NEW.enLinea = false THEN
+		UPDATE userLogs SET logout=now() WHERE ci= NEW.ci AND logout IS NULL;
+    END IF;
+END IF;
+END$$
 delimiter ;
 
-drop user if exists alumnoLogin@"localhost";
-drop user if exists docenteLogin@"localhost";
-drop user if exists adminLogin@"localhost";
-drop user if exists alumnoDB@"localhost";
-drop user if exists docenteDB@"localhost";
-drop user if exists adminDB@"localhost";
-
-/*******************************************USUARIOS PARA LA FORM DE LOGIN/REGISTRO**************************************************/
-create user "alumnoLogin"@"localhost" identified by "alumnoLogin";
-grant select (ci) on ultimaDB.Alumno to "alumnoLogin"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "alumnoLogin"@"localhost";
-grant select on ultimaDB.Grupo to "alumnoLogin"@"localhost";
-grant insert on ultimaDB.AlumnoTemp to "alumnoLogin"@"localhost";
-
-create user "docenteLogin"@"localhost" identified by "docenteLogin";
-grant select (ci) on ultimaDB.Docente to "docenteLogin"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "docenteLogin"@"localhost";
-
-create user "adminLogin"@"localhost" identified by "adminLogin";
-grant select (ci) on ultimaDB.Administrador to "adminLogin"@"localhost";
-grant select (ci,clave,nombre,apellido,isDeleted) on ultimaDB.Persona to "adminLogin"@"localhost";
-
-/****************************************USUARIOS NORMALES DE LA APP*******************************************************************/
-
-create user "alumnoDB"@"localhost" identified by "alumnoclave";
-grant update (clave,foto,avatar,enLinea,isDeleted) on ultimaDB.persona to "alumnoDB"@"localhost";
-grant update (isConnected) on ultimaDB.Sala_members to "alumnoDB"@"localhost";
-grant update (cp_mensajeStatus) on ultimaDB.CP_mensaje to "alumnoDB"@"localhost";
-grant update (isDone) on ultimaDB.Sala to "alumnoDB"@"localhost";
-grant update (logOut) on ultimaDB.userLogs to "alumnoDB"@"localhost";
-
-grant select on ultimaDB.Persona to "alumnoDB"@"localhost";
-grant select on ultimaDB.grupo to "alumnoDB"@"localhost";
-grant select on ultimaDB.alumno to "alumnoDB"@"localhost";
-grant select on ultimaDB.docente to "alumnoDB"@"localhost";
-grant select on ultimaDB.Horario to "alumnoDB"@"localhost";
-grant select on ultimaDB.materia to "alumnoDB"@"localhost";
-grant select on ultimaDB.grupo_tiene_materia to "alumnoDB"@"localhost";
-grant select on ultimaDB.alumno_tiene_Grupo to "alumnoDB"@"localhost";
-grant select on ultimaDB.docente_dicta_G_M to "alumnoDB"@"localhost";
-grant select on ultimaDB.ConsultaPrivada to "alumnoDB"@"localhost";
-grant select on ultimaDB.CP_mensaje to "alumnoDB"@"localhost";
-grant select on ultimaDB.Sala to "alumnoDB"@"localhost";
-grant select on ultimaDB.Sala_members to "alumnoDB"@"localhost";
-grant select on ultimaDB.Sala_mensaje to "alumnoDB"@"localhost";
-
-grant insert on ultimadb.ConsultaPrivada to "alumnoDB"@"localhost";
-grant insert on ultimadb.CP_mensaje to "alumnoDB"@"localhost";
-grant insert on ultimadb.Sala to "alumnoDB"@"localhost";
-grant insert on ultimadb.Sala_mensaje to "alumnoDB"@"localhost";
-grant insert on ultimadb.userLogs to "alumnoDB"@"localhost";
+-- *************************************************************USERS FOR LOGIN
+DROP USER alumnoLogin@'%';
+DROP USER docenteLogin@'%';
+DROP USER adminLogin@'%';
+DROP USER alumnoDB@'%';
+DROP USER docenteDB@'%';
+DROP USER adminDB@'%';
 
 
+CREATE USER "alumnoLogin"@"%" IDENTIFIED BY "alumnoLogin";
+GRANT SELECT (CI) ON ultimaDB.Alumno TO "alumnoLogin"@"%";
+GRANT SELECT ON ultimaDB.Persona TO "alumnoLogin"@"%";
+GRANT SELECT ON ultimaDB.Grupo TO "alumnoLogin"@"%";
+GRANT INSERT ON ultimaDB.AlumnoTemp TO "alumnoLogin"@"%";
+
+CREATE USER "docenteLogin"@"%" IDENTIFIED BY "docenteLogin";
+GRANT SELECT (CI) ON ultimaDB.Docente TO "docenteLogin"@"%";
+GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "docenteLogin"@"%";
+
+CREATE USER "adminLogin"@"%" IDENTIFIED BY "adminLogin";
+GRANT SELECT (CI) ON ultimaDB.Administrador TO "adminLogin"@"%";
+GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "adminLogin"@"%";
+
+-- *************************************************************USUARIOS NORMALES DE LA APP
+
+CREATE USER "alumnoDB"@"%" IDENTIFIED BY "alumnoclave";
+GRANT UPDATE (CLAVE,FOTO,AVATAR,ENLINEA,ISDELETED) ON ultimaDB.persona TO "alumnoDB"@"%";
+GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "alumnoDB"@"%";
+GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "alumnoDB"@"%";
+GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "alumnoDB"@"%";
+GRANT UPDATE (LOGOUT) ON ultimaDB.userLogs TO "alumnoDB"@"%";
+
+GRANT SELECT ON ultimaDB.Persona TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.grupo TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.alumno TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.docente TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.Horario TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.materia TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.grupo_tiene_materia TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.alumno_tiene_Grupo TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.docente_dicta_G_M TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.ConsultaPrivada TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.CP_mensaje TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.Sala TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.Sala_members TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.Sala_mensaje TO "alumnoDB"@"%";
+
+GRANT INSERT ON ultimadb.ConsultaPrivada TO "alumnoDB"@"%";
+GRANT INSERT ON ultimadb.CP_mensaje TO "alumnoDB"@"%";
+GRANT INSERT ON ultimadb.Sala TO "alumnoDB"@"%";
+GRANT INSERT ON ultimadb.Sala_mensaje TO "alumnoDB"@"%";
+GRANT INSERT ON ultimadb.userLogs TO "alumnoDB"@"%";
 
 
-create user "docenteDB"@"localhost" identified by "docenteclave";
-grant update (clave,foto,avatar,enLinea,isDeleted) on ultimaDB.persona to "docenteDB"@"localhost";
-grant update (logOut) on ultimaDB.userLogs to "docenteDB"@"localhost";
-grant update (timeStart,timeEnd) on ultimaDB.Horario to "docenteDB"@"localhost";
-grant update (isConnected) on ultimaDB.Sala_members to "docenteDB"@"localhost";
-grant update (cp_mensajeStatus) on ultimaDB.CP_mensaje to "docenteDB"@"localhost";
-grant update (isDone) on ultimaDB.Sala to "docenteDB"@"localhost";
+CREATE USER "docenteDB"@"%" IDENTIFIED BY "docenteclave";
+GRANT UPDATE (CLAVE,FOTO,AVATAR,ENLINEA,ISDELETED) ON ultimaDB.persona TO "docenteDB"@"%";
+GRANT UPDATE (LOGOUT) ON ultimaDB.userLogs TO "docenteDB"@"%";
+GRANT UPDATE (TIMESTART,TIMEEND) ON ultimaDB.Horario TO "docenteDB"@"%";
+GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "docenteDB"@"%";
+GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "docenteDB"@"%";
+GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "docenteDB"@"%";
 
-grant select on ultimaDB.Persona to "docenteDB"@"localhost";
-grant select on ultimaDB.grupo to "docenteDB"@"localhost";
-grant select on ultimaDB.alumno to "docenteDB"@"localhost";
-grant select on ultimaDB.docente to "docenteDB"@"localhost";
-grant select on ultimaDB.Horario to "alumnoDB"@"localhost";
-grant select on ultimaDB.materia to "docenteDB"@"localhost";
-grant select on ultimaDB.grupo_tiene_materia to "docenteDB"@"localhost";
-grant select on ultimaDB.alumno_tiene_Grupo to "docenteDB"@"localhost";
-grant select on ultimaDB.docente_dicta_G_M to "docenteDB"@"localhost";
-grant select on ultimaDB.ConsultaPrivada to "docenteDB"@"localhost";
-grant select on ultimaDB.CP_mensaje to "docenteDB"@"localhost";
-grant select on ultimaDB.Sala to "docenteDB"@"localhost";
-grant select on ultimaDB.Sala_members to "docenteDB"@"localhost";
-grant select on ultimaDB.Sala_mensaje to "docenteDB"@"localhost";
+GRANT SELECT ON ultimaDB.Persona TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.grupo TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.alumno TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.docente TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.Horario TO "alumnoDB"@"%";
+GRANT SELECT ON ultimaDB.materia TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.grupo_tiene_materia TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.alumno_tiene_Grupo TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.docente_dicta_G_M TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.ConsultaPrivada TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.CP_mensaje TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.Sala TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.Sala_members TO "docenteDB"@"%";
+GRANT SELECT ON ultimaDB.Sala_mensaje TO "docenteDB"@"%";
 
-grant insert on ultimadb.userLogs to "docenteDB"@"localhost";
-grant insert on ultimadb.Horario to "docenteDB"@"localhost";
-grant insert on ultimadb.CP_mensaje to "docenteDB"@"localhost";
-grant insert on ultimadb.Sala to "docenteDB"@"localhost";
-grant insert on ultimadb.Sala_mensaje to "docenteDB"@"localhost";
+GRANT INSERT ON ultimadb.userLogs TO "docenteDB"@"%";
+GRANT INSERT ON ultimadb.Horario TO "docenteDB"@"%";
+GRANT INSERT ON ultimadb.CP_mensaje TO "docenteDB"@"%";
+GRANT INSERT ON ultimadb.Sala TO "docenteDB"@"%";
+GRANT INSERT ON ultimadb.Sala_mensaje TO "docenteDB"@"%";
 
 
-create user "adminDB"@"localhost" identified by "adminclave";
-grant select on ultimaDB.* to "adminDB"@"localhost";
+CREATE USER "adminDB"@"%" IDENTIFIED BY "adminclave";
+GRANT SELECT ON ultimaDB.* TO "adminDB"@"%";
 
-grant insert on ultimadb.grupo to "adminDB"@"localhost";
-grant insert on ultimadb.Materia to "adminDB"@"localhost";
-grant insert on ultimadb.Orientacion to "adminDB"@"localhost";
-grant insert on ultimadb.Orientacion_tiene_grupo to "adminDB"@"localhost";
-grant insert on ultimadb.grupo_tiene_materia to "adminDB"@"localhost";
-grant insert on ultimadb.Persona to "adminDB"@"localhost";
-grant insert on ultimadb.Alumno to "adminDB"@"localhost";
-grant insert on ultimadb.Docente to "adminDB"@"localhost";
-grant insert on ultimadb.Administrador to "adminDB"@"localhost";
-grant insert on ultimadb.alumno_tiene_grupo to "adminDB"@"localhost";
-grant insert on ultimadb.docente_dicta_G_M to "adminDB"@"localhost";
+GRANT INSERT ON ultimadb.grupo TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Materia TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Orientacion TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Persona TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Alumno TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Docente TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.Administrador TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
+GRANT INSERT ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
 
-grant update (nombre,apellido,clave,foto,avatar) on ultimadb.Persona to "adminDB"@"localhost";
-grant update on ultimadb.grupo to "adminDB"@"localhost";
-grant update on ultimadb.Materia to "adminDB"@"localhost";
-grant update on ultimadb.Orientacion to "adminDB"@"localhost";
-grant update on ultimadb.Orientacion_tiene_grupo to "adminDB"@"localhost";
-grant update on ultimadb.grupo_tiene_materia to "adminDB"@"localhost";
-grant update on ultimadb.alumno_tiene_grupo to "adminDB"@"localhost";
-grant update on ultimadb.docente_dicta_G_M to "adminDB"@"localhost";
+GRANT UPDATE (NOMBRE,APELLIDO,CLAVE,FOTO,AVATAR,ISDELETED) ON ultimadb.Persona TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.grupo TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.Materia TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.Orientacion TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
+GRANT UPDATE ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
 
-grant delete on ultimadb.grupo to "adminDB"@"localhost";
-grant delete on ultimadb.Materia to "adminDB"@"localhost";
-grant delete on ultimadb.Orientacion to "adminDB"@"localhost";
-grant delete on ultimadb.Orientacion_tiene_grupo to "adminDB"@"localhost";
-grant delete on ultimadb.grupo_tiene_materia to "adminDB"@"localhost";
-grant delete on ultimadb.Persona to "adminDB"@"localhost";
-grant delete on ultimadb.Alumno to "adminDB"@"localhost";
-grant delete on ultimadb.Docente to "adminDB"@"localhost";
-grant delete on ultimadb.Administrador to "adminDB"@"localhost";
-grant delete on ultimadb.alumno_tiene_grupo to "adminDB"@"localhost";
-grant delete on ultimadb.docente_dicta_G_M to "adminDB"@"localhost";
+GRANT DELETE ON ultimadb.grupo TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Materia TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Orientacion TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Persona TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Alumno TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Docente TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.Administrador TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
+GRANT DELETE ON ultimadb.alumnoTemp TO "adminDB"@"%";
 
-/********************************DEMO***********************************************/
+-- ********************************DEMO***********************************************
 
 INSERT INTO Grupo (nombreGrupo) VALUES 
 ('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
@@ -481,6 +521,19 @@ INSERT INTO Persona (ci,nombre,apellido,clave,foto,avatar) VALUES
 (77777777,'abel','sings','clave7',NULL,NULL),
 (88888888,'sal','gore','clave8',NULL,NULL),
 (99999999,'adam','sandler','adminclave',NULL,NULL);
+
+INSERT INTO userLogs (ci, login, logout) VALUES
+   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
+   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
+   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
+   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))),
+   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +1 DAY))),
+   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
+   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
+   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
+   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))); 
+
+
 
 INSERT INTO Administrador(ci) VALUES (99999999);
 
@@ -572,29 +625,31 @@ VALUES
 (1,6,77777777,11111111,'hola',NULL,NOW(),"recibido",'77777777');
 
 INSERT INTO Sala (idGrupo,idMateria,docenteCi,anfitrion,resumen,creacion,isDone) VALUES
-(1,1,77777777,11111111,"se hablo del prat 1 de polinomios",DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),false),
-(1,1,77777777,11111111,"2domsgg",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),false),
-(1,1,77777777,11111111,"demooososo",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),false),
-(1,1,77777777,11111111,"jelly",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),false),
+(1,1,77777777,11111111,"se hablo del prat 1 de polinomios",DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),FALSE),
+(1,1,77777777,11111111,"2domsgg",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
+(1,1,77777777,11111111,"demooososo",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
+(1,1,77777777,11111111,"jelly",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
 
 
-(2,6,77777777,77777777,"revisamos el ejercicio 10 de prat 2",DATE(DATE_SUB(NOW(), INTERVAL +16 DAY)),true),
-(2,6,77777777,77777777,"revision primer escrito", DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),true),
-(2,6,77777777,77777777,"demostracion rufini", DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),true),
+(2,6,77777777,77777777,"revisamos el ejercicio 10 de prat 2",DATE(DATE_SUB(NOW(), INTERVAL +16 DAY)),TRUE),
+(2,6,77777777,77777777,"revision primer escrito", DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),TRUE),
+(2,6,77777777,77777777,"demostracion rufini", DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),TRUE),
 
-(3,11,77777777,77777777,"E.A y R.G de 1/x", DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),true),
-(3,11,77777777,77777777,"dudas prat1", DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),true),
-(3,11,77777777,77777777,"dudas prat2", DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),false),
+(3,11,77777777,77777777,"E.A y R.G de 1/x", DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),TRUE),
+(3,11,77777777,77777777,"dudas prat1", DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),TRUE),
+(3,11,77777777,77777777,"dudas prat2", DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),FALSE),
 
-(1,3,88888888,88888888,"intro a java", DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),true),
-(1,3,88888888,88888888,"intro de programacion orientada a objetos", DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),true),
-(1,3,88888888,88888888,"estructuras repetitivas", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY)),true),
-(1,3,88888888,88888888,"condicionales", DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),false),
+(1,3,88888888,88888888,"intro a java", DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),TRUE),
+(1,3,88888888,88888888,"intro de programacion orientada a objetos", DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),TRUE),
+(1,3,88888888,88888888,"estructuras repetitivas", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY)),TRUE),
+(1,3,88888888,88888888,"condicionales", DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
 
-(3,12,88888888,88888888,"INTRO A C#", DATE(DATE_SUB(NOW(), INTERVAL +3 DAY)),true),
-(3,12,88888888,88888888,"Capas de datos", DATE(DATE_SUB(NOW(), INTERVAL +2 DAY)),true),
-(3,12,88888888,88888888,"calculadora en c#", DATE(DATE_SUB(NOW(), INTERVAL +1 DAY)),true),
-(3,12,88888888,88888888,"ejemplo de conexion a base de datos c#", DATE(DATE_SUB(NOW(), INTERVAL +5 HOUR)),false);
+(3,12,88888888,88888888,"INTRO A C#", DATE(DATE_SUB(NOW(), INTERVAL +3 DAY)),TRUE),
+(3,12,88888888,88888888,"Capas de datos", DATE(DATE_SUB(NOW(), INTERVAL +2 DAY)),TRUE),
+(3,12,88888888,88888888,"calculadora en c#", DATE(DATE_SUB(NOW(), INTERVAL +1 DAY)),TRUE),
+(3,12,88888888,88888888,"ejemplo de conexion a base de datos c#", DATE(DATE_SUB(NOW(), INTERVAL +5 HOUR)),FALSE);
+
+
 
 INSERT INTO Sala_mensaje (idSala,autorCi,contenido,fechaHora) VALUES 
 (1,11111111,"Hola podemos discutir lo del prat 1?", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY))),
