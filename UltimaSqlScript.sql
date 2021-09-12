@@ -1,330 +1,142 @@
-DROP DATABASE IF EXISTS ultimaDB;
-CREATE DATABASE ultimaDB
-CHARACTER SET=utf8mb4
-COLLATE= utf8mb4_unicode_ci;
-USE ultimaDB;
+CREATE DATABASE  IF NOT EXISTS `ultimadb` /*!40100 DEFAULT CHARACTER SET latin1 */;
+USE `ultimadb`;
+-- MySQL dump 10.13  Distrib 8.0.26, for Win64 (x86_64)
+--
+-- Host: 127.0.0.1    Database: ultimadb
+-- ------------------------------------------------------
+-- Server version	5.7.35-log
 
--- consultas pedidas por docente
-/*
--- logs de una persona
-SET @CIpersona = 77777777;
-SELECT p.ci, p.nombre, p.apellido, L.login, L.logout 
-FROM userLogs L, Persona p
-WHERE p.ci = @CIpersona AND L.ci = @CIpersona;
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- logs de una persona en alguna fecha NOSE PORQUE NO FUNCIONA
-SET @CIpersona = 77777777;
-SET @fecha = "2021-09-10";
-select * from userLogs;
+--
+-- Table structure for table `administrador`
+--
 
-SELECT p.ci, p.nombre, p.apellido, L.login, L.logout 
-FROM userLogs L, Persona p
-WHERE p.ci = @CIpersona AND L.ci = @CIpersona 
-AND L.login >= @fecha AND L.logout <= @fecha;
+DROP TABLE IF EXISTS `administrador`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `administrador` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`ci`),
+  UNIQUE KEY `ci` (`ci`),
+  CONSTRAINT `administrador_ibfk_1` FOREIGN KEY (`ci`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- check who's online
-SELECT p.ci,p.nombre,p.apellido 
-FROM persona p 
-WHERE enLinea=true;
+--
+-- Dumping data for table `administrador`
+--
 
--- check which students are online
-SELECT p.ci,p.nombre,p.apellido 
-FROM persona p, alumno a
-WHERE enLinea=true AND a.ci=p.ci;
+LOCK TABLES `administrador` WRITE;
+/*!40000 ALTER TABLE `administrador` DISABLE KEYS */;
+INSERT INTO `administrador` VALUES ('99999999');
+/*!40000 ALTER TABLE `administrador` ENABLE KEYS */;
+UNLOCK TABLES;
 
--- check which teachers are online
-SELECT p.ci,p.nombre,p.apellido 
-FROM persona p, docente d
-WHERE enLinea=true AND d.ci=p.ci;
+--
+-- Table structure for table `alumno`
+--
 
+DROP TABLE IF EXISTS `alumno`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumno` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `apodo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`ci`),
+  UNIQUE KEY `ci` (`ci`),
+  UNIQUE KEY `apodo` (`apodo`),
+  KEY `ci_2` (`ci`),
+  CONSTRAINT `alumno_ibfk_1` FOREIGN KEY (`ci`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- trae las consultas donde el contenido de los mensajes o el titulo de la consulta contienen algun string
--- se ordenan por fecha, descending 
-set @algunaPalabra="jelly";
-select distinct c.* from consultaPrivada c 
-where (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
-	in (select idConsultaPrivada,ciDocente,ciAlumno from CP_mensaje where
-		INSTR(contenido,@algunaPalabra) > 0) 
-OR (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
-	in (select idConsultaPrivada,docenteCi,alumnoCi from consultaPrivada where
-		INSTR(titulo,@algunaPalabra) > 0)
-order by cpFechaHora desc;
+--
+-- Dumping data for table `alumno`
+--
 
+LOCK TABLES `alumno` WRITE;
+/*!40000 ALTER TABLE `alumno` DISABLE KEYS */;
+INSERT INTO `alumno` VALUES ('66666666','ahumer'),('33333333','cRock'),('11111111','cruzzz'),('44444444','Lexy'),('55555555','pittt'),('22222222','pRed');
+/*!40000 ALTER TABLE `alumno` ENABLE KEYS */;
+UNLOCK TABLES;
 
--- trae las salas donde el contenido de los mensajes o el resumen de la sala contienen algun string
--- se ordenan por fecha, descending 
-set @algunaPalabra="jelly";
-select distinct * from Sala
-where (idSala) 
-	in (select idSala from Sala where
-		INSTR(resumen,@algunaPalabra) > 0)
-OR (idSala) 
-	in (select idSala from Sala_mensaje where
-		INSTR(contenido,@algunaPalabra) > 0)
-order by creacion desc;
+--
+-- Table structure for table `alumno_tiene_grupo`
+--
 
+DROP TABLE IF EXISTS `alumno_tiene_grupo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumno_tiene_grupo` (
+  `alumnoCi` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `idGrupo` int(11) NOT NULL,
+  PRIMARY KEY (`alumnoCi`,`idGrupo`),
+  KEY `alumnoCi` (`alumnoCi`,`idGrupo`),
+  KEY `idGrupo` (`idGrupo`),
+  CONSTRAINT `alumno_tiene_grupo_ibfk_1` FOREIGN KEY (`alumnoCi`) REFERENCES `alumno` (`ci`),
+  CONSTRAINT `alumno_tiene_grupo_ibfk_2` FOREIGN KEY (`idGrupo`) REFERENCES `grupo` (`idGrupo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- consultas totales de todos los docentes
-select docenteCi, count(*) as "consultas totales" from consultaPrivada group by docenteCi;
+--
+-- Dumping data for table `alumno_tiene_grupo`
+--
 
+LOCK TABLES `alumno_tiene_grupo` WRITE;
+/*!40000 ALTER TABLE `alumno_tiene_grupo` DISABLE KEYS */;
+INSERT INTO `alumno_tiene_grupo` VALUES ('11111111',1),('33333333',1),('44444444',1),('66666666',1),('11111111',2),('22222222',2),('44444444',2),('22222222',3),('66666666',3),('55555555',5);
+/*!40000 ALTER TABLE `alumno_tiene_grupo` ENABLE KEYS */;
+UNLOCK TABLES;
 
--- consultas pendientes de todos los docentes
-select docenteCi, count(*) as "consultas pendiente" 
-from consultaPrivada 
-where cpStatus="pendiente" group by docenteCi;
+--
+-- Table structure for table `alumnotemp`
+--
 
+DROP TABLE IF EXISTS `alumnotemp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumnotemp` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nombre` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `apellido` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `clave` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `foto` blob,
+  `avatar` blob,
+  `apodo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `grupos` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`ci`),
+  KEY `ci` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- consultas resueltas de todos los docentes
-select docenteCi, count(*) as "consultas finalizadas" 
-from consultaPrivada 
-where cpStatus="resuelta" group by docenteCi;
+--
+-- Dumping data for table `alumnotemp`
+--
 
-
--- ********* toda la informacion de alguien
-
--- cambie el valor del variable para buscar diferentes personas
-set @ci=11111111;
-
--- consultas de una persona
-SELECT c.*
-FROM consultaPrivada c 
-WHERE c.alumnoCi= @ci OR c.docenteCi= @ci;
-
--- mensajes de todas consultas de esa persona
-SELECT cpm.*
-FROM cp_mensaje cpm 
-WHERE @ci = cpm.ciAlumno OR @ci = cpm.ciDocente;
-
--- salas que persona creo 
-SELECT s.*
-FROM sala s
-WHERE s.anfitrion= @ci;
-
--- mensajes de salas de esa persona
-SELECT sm.*
-FROM sala_mensaje sm 
-WHERE sm.autorCi= @ci;
- 
--- salas que persona puede aceder
-SELECT sme.*
-FROM sala_members sme
-WHERE sme.ci= @ci;
-*/ 
-
-CREATE TABLE Grupo (
-idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-nombreGrupo VARCHAR(10) NOT NULL,
-INDEX (idGrupo));
-
-CREATE TABLE Materia(
-idMateria INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-nombreMateria VARCHAR(25) NOT NULL,
-INDEX (idMateria));
-
-CREATE TABLE Grupo_tiene_Materia (
-    idGrupo INT NOT NULL,
-    idMateria INT NOT NULL,
-    PRIMARY KEY (idGrupo , idMateria),
-    INDEX (idGrupo,idMateria),
-    FOREIGN KEY (idGrupo)
-        REFERENCES Grupo (idGrupo),
-    FOREIGN KEY (idMateria)
-        REFERENCES Materia (idMateria)
-); 
-
-CREATE TABLE Orientacion(
-idOrientacion INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-nombreOrientacion VARCHAR(25) NOT NULL,
-INDEX (idOrientacion)
-);
-
-CREATE TABLE Orientacion_tiene_Grupo (
-idOrientacion INT NOT NULL,
-idGrupo INT NOT NULL,
-PRIMARY KEY (idGrupo),
-INDEX (idGrupo),
-FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo),
-FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion)
-);
-
-CREATE TABLE Persona (
-    ci CHAR(8) PRIMARY KEY NOT NULL,
-    nombre VARCHAR(26) NOT NULL,
-    apellido VARCHAR(26) NOT NULL,
-    clave VARCHAR(32) NOT NULL ,
-    isDeleted BOOL NOT NULL DEFAULT FALSE,
-    foto BLOB  NULL,
-    avatar BLOB  NULL,
-    enLinea BOOL DEFAULT FALSE,
-    INDEX(ci));	
-    
-CREATE TABLE userLogs (
-    ci CHAR(8) NOT NULL,
-    login DATETIME NOT NULL,
-	logOut DATETIME NULL,
-    INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Persona (ci));
-   
-CREATE TABLE Administrador (
-    ci CHAR(8) NOT NULL UNIQUE,
-    PRIMARY KEY (ci),
-    FOREIGN KEY (ci)
-        REFERENCES persona (ci)
-);
-
-CREATE TABLE Docente (
-	ci CHAR(8) NOT NULL UNIQUE,
-    PRIMARY KEY (ci),
-    INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Persona (ci)
-);
-/*
-uses military time 
-0-2400
-if timeStart not null then 
-timeEnd must have a value
-
-timeEnd must be after timeStart so 
-timeEnd>timeStart
-
-*/
-
--- 0 = sunday ... 6 = saturday
-CREATE TABLE Horario (
-    ci CHAR(8) NOT NULL,
-    dia TINYINT(1) UNSIGNED NULL,
-    timeStart SMALLINT(4) UNSIGNED NULL,
-	timeEnd  SMALLINT(4) UNSIGNED NULL,
-    INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Docente (ci)
-);
- 
- 
- -- grupos will be stored as a string and filtered with regular expression
-CREATE TABLE AlumnoTemp (
-    ci CHAR(8) PRIMARY KEY NOT NULL,
-    nombre VARCHAR(20) NOT NULL,
-    apellido VARCHAR(20) NOT NULL,
-    clave VARCHAR(32) NOT NULL,
-    foto BLOB NULL,
-    avatar BLOB NULL,
-    apodo VARCHAR(20) NOT NULL,
-    grupos VARCHAR(30) NOT NULL,
-    INDEX(ci)
-);
-    
-CREATE TABLE Docente_dicta_G_M (
-    idGrupo INT NOT NULL,
-    idMateria INT NOT NULL,
-    docenteCi CHAR(8),
-    PRIMARY KEY (idGrupo , idMateria),
-    INDEX (docenteCi),
-    FOREIGN KEY (idGrupo)
-        REFERENCES Grupo (idGrupo),
-    FOREIGN KEY (idMateria)
-        REFERENCES Materia (idMateria),
-    FOREIGN KEY (docenteCi)
-        REFERENCES Docente (ci)
-);
-
-CREATE TABLE Alumno (
-  ci CHAR(8) UNIQUE NOT NULL,
-    apodo VARCHAR(20) UNIQUE NOT NULL,
-    PRIMARY KEY(ci),
-    INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Persona (ci)
-);
-
-CREATE TABLE Alumno_tiene_Grupo(
-alumnoCi CHAR(8) NOT NULL,
-idGrupo INT NOT NULL,
-PRIMARY KEY (alumnoCi,idGrupo),
-INDEX(alumnoCi,idGrupo),
-FOREIGN KEY (alumnoCi) REFERENCES Alumno(ci),
-FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo)
-);
-
-CREATE TABLE ConsultaPrivada (
-    idConsultaPrivada INT NOT NULL,
-    docenteCi CHAR(8) NOT NULL,
-    alumnoCi CHAR(8) NOT NULL,
-    titulo VARCHAR(50) NOT NULL,
-    cpStatus ENUM('pendiente', 'resuelta') NOT NULL,
-    cpFechaHora DATETIME NOT NULL,
-    PRIMARY KEY (idConsultaPrivada,docenteCi, alumnoCi),
-    INDEX (idConsultaPrivada,docenteCi, alumnoCi),
-    FOREIGN KEY (docenteCi)
-        REFERENCES Docente (ci),
-    FOREIGN KEY (alumnoCi)
-        REFERENCES Alumno (ci));
-
-CREATE TABLE CP_mensaje(
-idCp_mensaje INT NOT NULL,
-idConsultaPrivada INT NOT NULL,
-ciAlumno CHAR(8) NOT NULL,
-ciDocente CHAR(8) NOT NULL,
-contenido VARCHAR(5000) NOT NULL,
-attachment MEDIUMBLOB,
-cp_mensajeFechaHora DATETIME NOT NULL,
-cp_mensajeStatus ENUM('recibido','leido') NOT NULL,
-ciDestinatario CHAR(8) NOT NULL,
-PRIMARY KEY(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
-INDEX(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
-FOREIGN KEY (idConsultaPrivada) REFERENCES ConsultaPrivada (idConsultaPrivada),
-FOREIGN KEY (ciAlumno) REFERENCES Alumno (ci),
-FOREIGN KEY (ciDocente) REFERENCES Docente (ci),
-FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci));
-
-CREATE TABLE Sala(
-idSala INT UNSIGNED NOT NULL AUTO_INCREMENT,
-idGrupo INT NOT NULL,
-idMateria INT NOT NULL,
-docenteCi CHAR(8) NOT NULL,
-anfitrion CHAR(8) NOT NULL,
-resumen VARCHAR(1000) NULL,
-isDone BOOL DEFAULT FALSE NOT NULL,
-creacion DATETIME NOT NULL,
-PRIMARY KEY (idSala),
-INDEX(idSala,idGrupo,idMateria),
-FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo),
-FOREIGN KEY (idMateria) REFERENCES Materia (idMateria),
-FOREIGN KEY (docenteCi) REFERENCES Docente (ci),
-FOREIGN KEY (anfitrion) REFERENCES Persona (ci)
-);
-
-CREATE TABLE Sala_members(
-idSala INT UNSIGNED NOT NULL,
-ci CHAR(8) NOT NULL,
-isConnected BOOL DEFAULT FALSE NOT NULL,
-PRIMARY KEY (idSala,ci),
-INDEX (idSala,ci),
-FOREIGN KEY (idSala) REFERENCES Sala (idSala),
-FOREIGN KEY (ci) REFERENCES Persona (ci));
-
-CREATE TABLE Sala_mensaje(
-idSala INT UNSIGNED NOT NULL,
-idMensaje INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
-autorCi CHAR(8) NOT NULL ,
-contenido VARCHAR(5000) NOT NULL,
-fechaHora DATETIME NOT NULL,
-INDEX (idSala),
-FOREIGN KEY (idSala) REFERENCES Sala (idSala),
-FOREIGN KEY (autorCi) REFERENCES Persona (ci));
-
--- ********************************************TRIGGERS
-delimiter $$
-CREATE TRIGGER loadMembersToSala AFTER INSERT ON Sala 
-FOR EACH ROW
-BEGIN
-INSERT INTO Sala_members(idSala,ci,isConnected) SELECT NEW.idSala,alumnoCi,FALSE FROM alumno_tiene_Grupo WHERE idGrupo=NEW.idGrupo;
-INSERT INTO Sala_members(idSala,ci,isConnected) VALUES (NEW.idSala,NEW.docenteCi,FALSE);
-END$$
-
-CREATE TRIGGER checkData BEFORE INSERT ON Persona 
+LOCK TABLES `alumnotemp` WRITE;
+/*!40000 ALTER TABLE `alumnotemp` DISABLE KEYS */;
+/*!40000 ALTER TABLE `alumnotemp` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER checkDataNewAlumno BEFORE INSERT ON AlumnoTemp 
 FOR EACH ROW
 BEGIN
 SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
@@ -332,9 +144,339 @@ SET @lengthCi= LENGTH(NEW.ci);
 IF @chartype> 0 OR @lengthCi !=8 THEN 
 	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="invalid characters";
 END IF;
-END$$
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
-CREATE TRIGGER checkDataNewAlumno BEFORE INSERT ON AlumnoTemp 
+--
+-- Table structure for table `consultaprivada`
+--
+
+DROP TABLE IF EXISTS `consultaprivada`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `consultaprivada` (
+  `idConsultaPrivada` int(11) NOT NULL,
+  `docenteCi` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `alumnoCi` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `titulo` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `cpStatus` enum('pendiente','resuelta') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `cpFechaHora` datetime NOT NULL,
+  PRIMARY KEY (`idConsultaPrivada`,`docenteCi`,`alumnoCi`),
+  KEY `idConsultaPrivada` (`idConsultaPrivada`,`docenteCi`,`alumnoCi`),
+  KEY `docenteCi` (`docenteCi`),
+  KEY `alumnoCi` (`alumnoCi`),
+  CONSTRAINT `consultaprivada_ibfk_1` FOREIGN KEY (`docenteCi`) REFERENCES `docente` (`ci`),
+  CONSTRAINT `consultaprivada_ibfk_2` FOREIGN KEY (`alumnoCi`) REFERENCES `alumno` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `consultaprivada`
+--
+
+LOCK TABLES `consultaprivada` WRITE;
+/*!40000 ALTER TABLE `consultaprivada` DISABLE KEYS */;
+INSERT INTO `consultaprivada` VALUES (1,'77777777','11111111','hola','pendiente','2021-09-10 09:32:14'),(1,'77777777','22222222','profe hello','pendiente','2021-09-10 09:32:14'),(1,'77777777','33333333','soy tu alumno','pendiente','2021-09-10 09:32:14'),(1,'77777777','44444444','prat1','pendiente','2021-09-10 09:32:14'),(1,'88888888','11111111','prat1 ej3','pendiente','2021-09-10 09:32:14'),(1,'88888888','33333333','prat4','pendiente','2021-09-10 09:32:14'),(1,'88888888','55555555','prat3','pendiente','2021-09-10 09:32:14'),(2,'77777777','11111111','HOLAAAA','pendiente','2021-09-10 09:32:14'),(3,'77777777','11111111','todobien?','pendiente','2021-09-10 09:32:14'),(4,'77777777','11111111','faltas hoy?','pendiente','2021-09-10 09:32:14'),(5,'77777777','11111111','jelly','pendiente','2021-09-10 09:32:14'),(6,'77777777','11111111','hola','resuelta','2021-09-10 09:32:14');
+/*!40000 ALTER TABLE `consultaprivada` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `cp_mensaje`
+--
+
+DROP TABLE IF EXISTS `cp_mensaje`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cp_mensaje` (
+  `idCp_mensaje` int(11) NOT NULL,
+  `idConsultaPrivada` int(11) NOT NULL,
+  `ciAlumno` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ciDocente` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `contenido` varchar(5000) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `attachment` mediumblob,
+  `cp_mensajeFechaHora` datetime NOT NULL,
+  `cp_mensajeStatus` enum('recibido','leido') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ciDestinatario` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`idCp_mensaje`,`idConsultaPrivada`,`ciAlumno`,`ciDocente`),
+  KEY `idCp_mensaje` (`idCp_mensaje`,`idConsultaPrivada`,`ciAlumno`,`ciDocente`),
+  KEY `idConsultaPrivada` (`idConsultaPrivada`),
+  KEY `ciAlumno` (`ciAlumno`),
+  KEY `ciDocente` (`ciDocente`),
+  KEY `ciDestinatario` (`ciDestinatario`),
+  CONSTRAINT `cp_mensaje_ibfk_1` FOREIGN KEY (`idConsultaPrivada`) REFERENCES `consultaprivada` (`idConsultaPrivada`),
+  CONSTRAINT `cp_mensaje_ibfk_2` FOREIGN KEY (`ciAlumno`) REFERENCES `alumno` (`ci`),
+  CONSTRAINT `cp_mensaje_ibfk_3` FOREIGN KEY (`ciDocente`) REFERENCES `docente` (`ci`),
+  CONSTRAINT `cp_mensaje_ibfk_4` FOREIGN KEY (`ciDestinatario`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `cp_mensaje`
+--
+
+LOCK TABLES `cp_mensaje` WRITE;
+/*!40000 ALTER TABLE `cp_mensaje` DISABLE KEYS */;
+INSERT INTO `cp_mensaje` VALUES (1,1,'11111111','77777777','this is a test, search for my words',NULL,'2021-09-10 09:32:14','recibido','77777777'),(1,1,'11111111','88888888','sdfsdsdssdsdsdsdsd',NULL,'2021-09-10 09:32:14','leido','88888888'),(1,1,'22222222','77777777','go to the city',NULL,'2021-09-10 09:32:14','recibido','77777777'),(1,1,'33333333','77777777','give up',NULL,'2021-09-10 09:32:14','leido','77777777'),(1,1,'33333333','88888888','sdfsdsdssdsdsdsdsd',NULL,'2021-09-10 09:32:14','leido','88888888'),(1,1,'44444444','77777777','nope',NULL,'2021-09-10 09:32:14','leido','77777777'),(1,1,'55555555','88888888','sdfsdsdssdsdsdsdsd',NULL,'2021-09-10 09:32:14','leido','88888888'),(1,2,'11111111','77777777','asdasda',NULL,'2021-09-10 09:32:14','recibido','77777777'),(1,3,'11111111','77777777','cat',NULL,'2021-09-10 09:32:14','recibido','77777777'),(1,4,'11111111','77777777','jelly welly',NULL,'2021-09-10 09:32:14','recibido','77777777'),(1,5,'11111111','77777777','jelly',NULL,'2021-09-10 09:32:14','recibido','77777777'),(1,6,'11111111','77777777','hola',NULL,'2021-09-10 09:32:14','recibido','77777777'),(2,1,'11111111','77777777','jelly doughnut',NULL,'2021-09-10 09:32:14','leido','11111111'),(2,1,'11111111','88888888','sdfsdsdssdsdsdsdsd',NULL,'2021-09-10 09:32:14','leido','11111111'),(2,1,'22222222','77777777','live like a demon',NULL,'2021-09-10 09:32:14','recibido','22222222'),(2,1,'33333333','77777777','check the jelly',NULL,'2021-09-10 09:32:14','leido','77777777'),(2,1,'33333333','88888888','sdfsdsdssdsdsdsdsd',NULL,'2021-09-10 09:32:14','leido','33333333'),(2,1,'44444444','77777777','sdfsdsdssdsdsdsdsd',NULL,'2021-09-10 09:32:14','leido','44444444'),(2,2,'11111111','77777777','asdasda',NULL,'2021-09-10 09:32:14','recibido','11111111'),(2,3,'11111111','77777777','asdasda',NULL,'2021-09-10 09:32:14','recibido','11111111'),(2,4,'11111111','77777777','blah blah',NULL,'2021-09-10 09:32:14','recibido','11111111');
+/*!40000 ALTER TABLE `cp_mensaje` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `docente`
+--
+
+DROP TABLE IF EXISTS `docente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `docente` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`ci`),
+  UNIQUE KEY `ci` (`ci`),
+  KEY `ci_2` (`ci`),
+  CONSTRAINT `docente_ibfk_1` FOREIGN KEY (`ci`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `docente`
+--
+
+LOCK TABLES `docente` WRITE;
+/*!40000 ALTER TABLE `docente` DISABLE KEYS */;
+INSERT INTO `docente` VALUES ('77777777'),('88888888');
+/*!40000 ALTER TABLE `docente` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `docente_dicta_g_m`
+--
+
+DROP TABLE IF EXISTS `docente_dicta_g_m`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `docente_dicta_g_m` (
+  `idGrupo` int(11) NOT NULL,
+  `idMateria` int(11) NOT NULL,
+  `docenteCi` char(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`idGrupo`,`idMateria`),
+  KEY `docenteCi` (`docenteCi`),
+  KEY `idMateria` (`idMateria`),
+  CONSTRAINT `docente_dicta_g_m_ibfk_1` FOREIGN KEY (`idGrupo`) REFERENCES `grupo` (`idGrupo`),
+  CONSTRAINT `docente_dicta_g_m_ibfk_2` FOREIGN KEY (`idMateria`) REFERENCES `materia` (`idMateria`),
+  CONSTRAINT `docente_dicta_g_m_ibfk_3` FOREIGN KEY (`docenteCi`) REFERENCES `docente` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `docente_dicta_g_m`
+--
+
+LOCK TABLES `docente_dicta_g_m` WRITE;
+/*!40000 ALTER TABLE `docente_dicta_g_m` DISABLE KEYS */;
+INSERT INTO `docente_dicta_g_m` VALUES (1,2,NULL),(1,4,NULL),(1,5,NULL),(2,7,NULL),(2,8,NULL),(2,9,NULL),(2,10,NULL),(3,13,NULL),(3,14,NULL),(4,11,NULL),(4,12,NULL),(4,13,NULL),(4,15,NULL),(5,11,NULL),(5,12,NULL),(5,13,NULL),(5,16,NULL),(1,1,'77777777'),(2,6,'77777777'),(3,11,'77777777'),(1,3,'88888888'),(3,12,'88888888');
+/*!40000 ALTER TABLE `docente_dicta_g_m` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `grupo`
+--
+
+DROP TABLE IF EXISTS `grupo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `grupo` (
+  `idGrupo` int(11) NOT NULL AUTO_INCREMENT,
+  `nombreGrupo` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`idGrupo`),
+  KEY `idGrupo` (`idGrupo`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `grupo`
+--
+
+LOCK TABLES `grupo` WRITE;
+/*!40000 ALTER TABLE `grupo` DISABLE KEYS */;
+INSERT INTO `grupo` VALUES (1,'1BB'),(2,'2BB'),(3,'3BB'),(4,'3BA'),(5,'3BC');
+/*!40000 ALTER TABLE `grupo` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `grupo_tiene_materia`
+--
+
+DROP TABLE IF EXISTS `grupo_tiene_materia`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `grupo_tiene_materia` (
+  `idGrupo` int(11) NOT NULL,
+  `idMateria` int(11) NOT NULL,
+  PRIMARY KEY (`idGrupo`,`idMateria`),
+  KEY `idGrupo` (`idGrupo`,`idMateria`),
+  KEY `idMateria` (`idMateria`),
+  CONSTRAINT `grupo_tiene_materia_ibfk_1` FOREIGN KEY (`idGrupo`) REFERENCES `grupo` (`idGrupo`),
+  CONSTRAINT `grupo_tiene_materia_ibfk_2` FOREIGN KEY (`idMateria`) REFERENCES `materia` (`idMateria`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `grupo_tiene_materia`
+--
+
+LOCK TABLES `grupo_tiene_materia` WRITE;
+/*!40000 ALTER TABLE `grupo_tiene_materia` DISABLE KEYS */;
+INSERT INTO `grupo_tiene_materia` VALUES (1,1),(1,2),(1,3),(1,4),(1,5),(2,6),(2,7),(2,8),(2,9),(2,10),(3,11),(4,11),(5,11),(3,12),(4,12),(5,12),(3,13),(4,13),(5,13),(3,14),(4,15),(5,16);
+/*!40000 ALTER TABLE `grupo_tiene_materia` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `horario`
+--
+
+DROP TABLE IF EXISTS `horario`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `horario` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `dia` tinyint(1) unsigned DEFAULT NULL,
+  `timeStart` smallint(4) unsigned DEFAULT NULL,
+  `timeEnd` smallint(4) unsigned DEFAULT NULL,
+  KEY `ci` (`ci`),
+  CONSTRAINT `horario_ibfk_1` FOREIGN KEY (`ci`) REFERENCES `docente` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `horario`
+--
+
+LOCK TABLES `horario` WRITE;
+/*!40000 ALTER TABLE `horario` DISABLE KEYS */;
+/*!40000 ALTER TABLE `horario` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `materia`
+--
+
+DROP TABLE IF EXISTS `materia`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `materia` (
+  `idMateria` int(11) NOT NULL AUTO_INCREMENT,
+  `nombreMateria` varchar(25) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`idMateria`),
+  KEY `idMateria` (`idMateria`)
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `materia`
+--
+
+LOCK TABLES `materia` WRITE;
+/*!40000 ALTER TABLE `materia` DISABLE KEYS */;
+INSERT INTO `materia` VALUES (1,'mat1'),(2,'geo1'),(3,'prog1'),(4,'SO1'),(5,'taller1'),(6,'mat2'),(7,'geo2'),(8,'prog2'),(9,'SO2'),(10,'taller2'),(11,'mat3'),(12,'prog3'),(13,'SO3'),(14,'redes y soporte'),(15,'disenio web'),(16,'unity');
+/*!40000 ALTER TABLE `materia` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `orientacion`
+--
+
+DROP TABLE IF EXISTS `orientacion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `orientacion` (
+  `idOrientacion` int(11) NOT NULL AUTO_INCREMENT,
+  `nombreOrientacion` varchar(25) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`idOrientacion`),
+  KEY `idOrientacion` (`idOrientacion`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `orientacion`
+--
+
+LOCK TABLES `orientacion` WRITE;
+/*!40000 ALTER TABLE `orientacion` DISABLE KEYS */;
+INSERT INTO `orientacion` VALUES (1,'desarollo y soporte'),(2,'disenio web'),(3,'disenio de juegos');
+/*!40000 ALTER TABLE `orientacion` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `orientacion_tiene_grupo`
+--
+
+DROP TABLE IF EXISTS `orientacion_tiene_grupo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `orientacion_tiene_grupo` (
+  `idOrientacion` int(11) NOT NULL,
+  `idGrupo` int(11) NOT NULL,
+  PRIMARY KEY (`idGrupo`),
+  KEY `idGrupo` (`idGrupo`),
+  KEY `idOrientacion` (`idOrientacion`),
+  CONSTRAINT `orientacion_tiene_grupo_ibfk_1` FOREIGN KEY (`idGrupo`) REFERENCES `grupo` (`idGrupo`),
+  CONSTRAINT `orientacion_tiene_grupo_ibfk_2` FOREIGN KEY (`idOrientacion`) REFERENCES `orientacion` (`idOrientacion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `orientacion_tiene_grupo`
+--
+
+LOCK TABLES `orientacion_tiene_grupo` WRITE;
+/*!40000 ALTER TABLE `orientacion_tiene_grupo` DISABLE KEYS */;
+INSERT INTO `orientacion_tiene_grupo` VALUES (1,3),(2,4),(3,5);
+/*!40000 ALTER TABLE `orientacion_tiene_grupo` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `persona`
+--
+
+DROP TABLE IF EXISTS `persona`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `persona` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nombre` varchar(26) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `apellido` varchar(26) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `clave` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `isDeleted` tinyint(1) NOT NULL DEFAULT '0',
+  `foto` blob,
+  `avatar` blob,
+  `enLinea` tinyint(1) DEFAULT '0',
+  PRIMARY KEY (`ci`),
+  KEY `ci` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `persona`
+--
+
+LOCK TABLES `persona` WRITE;
+/*!40000 ALTER TABLE `persona` DISABLE KEYS */;
+INSERT INTO `persona` VALUES ('11111111','Penelope','cruz','clave1',0,NULL,NULL,0),('22222222','pepe','red','clave2',0,NULL,NULL,0),('33333333','coco','rock','clave3',0,NULL,NULL,0),('44444444','lex','luther','clave4',0,NULL,NULL,0),('55555555','arm','pit','clave5',0,NULL,NULL,0),('66666666','amy','schumer','clave6',0,NULL,NULL,0),('77777777','abel','sings','clave7',0,NULL,NULL,0),('88888888','sal','gore','clave8',0,NULL,NULL,0),('99999999','adam','sandler','adminclave',0,NULL,NULL,0);
+/*!40000 ALTER TABLE `persona` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER checkData BEFORE INSERT ON Persona 
 FOR EACH ROW
 BEGIN
 SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
@@ -342,13 +484,22 @@ SET @lengthCi= LENGTH(NEW.ci);
 IF @chartype> 0 OR @lengthCi !=8 THEN 
 	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="invalid characters";
 END IF;
-END$$
-
--- para crear nuevos logs y cerrar sesiones que no se cerraron correctamente sin usar un daemon
--- cuando una persona logs in su estado de enLinea se cambia a true
-drop trigger userHasLogged;
-delimiter $$
-CREATE TRIGGER userHasLogged BEFORE UPDATE ON Persona
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER userHasLogged BEFORE UPDATE ON Persona
 FOR EACH ROW
 BEGIN
 SET @count = (SELECT COUNT(*) FROM userLogs WHERE ci=NEW.ci);
@@ -362,309 +513,165 @@ IF NEW.enLinea = true THEN
 		UPDATE userLogs SET logout=now() WHERE ci= NEW.ci AND logout IS NULL;
     END IF;
 END IF;
-END$$
-delimiter ;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
--- *************************************************************USERS FOR LOGIN
-DROP USER alumnoLogin@'%';
-DROP USER docenteLogin@'%';
-DROP USER adminLogin@'%';
-DROP USER alumnoDB@'%';
-DROP USER docenteDB@'%';
-DROP USER adminDB@'%';
+--
+-- Table structure for table `sala`
+--
 
+DROP TABLE IF EXISTS `sala`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sala` (
+  `idSala` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `idGrupo` int(11) NOT NULL,
+  `idMateria` int(11) NOT NULL,
+  `docenteCi` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `anfitrion` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `resumen` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `isDone` tinyint(1) NOT NULL DEFAULT '0',
+  `creacion` datetime NOT NULL,
+  PRIMARY KEY (`idSala`),
+  KEY `idSala` (`idSala`,`idGrupo`,`idMateria`),
+  KEY `idGrupo` (`idGrupo`),
+  KEY `idMateria` (`idMateria`),
+  KEY `docenteCi` (`docenteCi`),
+  KEY `anfitrion` (`anfitrion`),
+  CONSTRAINT `sala_ibfk_1` FOREIGN KEY (`idGrupo`) REFERENCES `grupo` (`idGrupo`),
+  CONSTRAINT `sala_ibfk_2` FOREIGN KEY (`idMateria`) REFERENCES `materia` (`idMateria`),
+  CONSTRAINT `sala_ibfk_3` FOREIGN KEY (`docenteCi`) REFERENCES `docente` (`ci`),
+  CONSTRAINT `sala_ibfk_4` FOREIGN KEY (`anfitrion`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-CREATE USER "alumnoLogin"@"%" IDENTIFIED BY "alumnoLogin";
-GRANT SELECT (CI) ON ultimaDB.Alumno TO "alumnoLogin"@"%";
-GRANT SELECT ON ultimaDB.Persona TO "alumnoLogin"@"%";
-GRANT SELECT ON ultimaDB.Grupo TO "alumnoLogin"@"%";
-GRANT INSERT ON ultimaDB.AlumnoTemp TO "alumnoLogin"@"%";
+--
+-- Dumping data for table `sala`
+--
 
-CREATE USER "docenteLogin"@"%" IDENTIFIED BY "docenteLogin";
-GRANT SELECT (CI) ON ultimaDB.Docente TO "docenteLogin"@"%";
-GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "docenteLogin"@"%";
+LOCK TABLES `sala` WRITE;
+/*!40000 ALTER TABLE `sala` DISABLE KEYS */;
+INSERT INTO `sala` VALUES (1,1,1,'77777777','11111111','se hablo del prat 1 de polinomios',0,'2021-09-04 00:00:00'),(2,1,1,'77777777','11111111','2domsgg',0,'2021-09-06 00:00:00'),(3,1,1,'77777777','11111111','demooososo',0,'2021-09-06 00:00:00'),(4,1,1,'77777777','11111111','jelly',0,'2021-09-06 00:00:00'),(5,2,6,'77777777','77777777','revisamos el ejercicio 10 de prat 2',1,'2021-08-25 00:00:00'),(6,2,6,'77777777','77777777','revision primer escrito',1,'2021-08-30 00:00:00'),(7,2,6,'77777777','77777777','demostracion rufini',1,'2021-08-30 00:00:00'),(8,3,11,'77777777','77777777','E.A y R.G de 1/x',1,'2021-08-31 00:00:00'),(9,3,11,'77777777','77777777','dudas prat1',1,'2021-09-01 00:00:00'),(10,3,11,'77777777','77777777','dudas prat2',0,'2021-09-02 00:00:00'),(11,1,3,'88888888','88888888','intro a java',1,'2021-09-03 00:00:00'),(12,1,3,'88888888','88888888','intro de programacion orientada a objetos',1,'2021-09-04 00:00:00'),(13,1,3,'88888888','88888888','estructuras repetitivas',1,'2021-09-05 00:00:00'),(14,1,3,'88888888','88888888','condicionales',0,'2021-09-06 00:00:00'),(15,3,12,'88888888','88888888','INTRO A C#',1,'2021-09-07 00:00:00'),(16,3,12,'88888888','88888888','Capas de datos',1,'2021-09-08 00:00:00'),(17,3,12,'88888888','88888888','calculadora en c#',1,'2021-09-09 00:00:00'),(18,3,12,'88888888','88888888','ejemplo de conexion a base de datos c#',0,'2021-09-10 00:00:00');
+/*!40000 ALTER TABLE `sala` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER loadMembersToSala AFTER INSERT ON Sala 
+FOR EACH ROW
+BEGIN
+INSERT INTO Sala_members(idSala,ci,isConnected) SELECT NEW.idSala,alumnoCi,FALSE FROM alumno_tiene_Grupo WHERE idGrupo=NEW.idGrupo;
+INSERT INTO Sala_members(idSala,ci,isConnected) VALUES (NEW.idSala,NEW.docenteCi,FALSE);
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
-CREATE USER "adminLogin"@"%" IDENTIFIED BY "adminLogin";
-GRANT SELECT (CI) ON ultimaDB.Administrador TO "adminLogin"@"%";
-GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "adminLogin"@"%";
+--
+-- Table structure for table `sala_members`
+--
 
--- *************************************************************USUARIOS NORMALES DE LA APP
+DROP TABLE IF EXISTS `sala_members`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sala_members` (
+  `idSala` int(10) unsigned NOT NULL,
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `isConnected` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`idSala`,`ci`),
+  KEY `idSala` (`idSala`,`ci`),
+  KEY `ci` (`ci`),
+  CONSTRAINT `sala_members_ibfk_1` FOREIGN KEY (`idSala`) REFERENCES `sala` (`idSala`),
+  CONSTRAINT `sala_members_ibfk_2` FOREIGN KEY (`ci`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-CREATE USER "alumnoDB"@"%" IDENTIFIED BY "alumnoclave";
-GRANT UPDATE (CLAVE,FOTO,AVATAR,ENLINEA,ISDELETED) ON ultimaDB.persona TO "alumnoDB"@"%";
-GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "alumnoDB"@"%";
-GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "alumnoDB"@"%";
-GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "alumnoDB"@"%";
-GRANT UPDATE (LOGOUT) ON ultimaDB.userLogs TO "alumnoDB"@"%";
+--
+-- Dumping data for table `sala_members`
+--
 
-GRANT SELECT ON ultimaDB.Persona TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.grupo TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.alumno TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.docente TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.Horario TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.materia TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.grupo_tiene_materia TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.alumno_tiene_Grupo TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.docente_dicta_G_M TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.ConsultaPrivada TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.CP_mensaje TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.Sala TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.Sala_members TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.Sala_mensaje TO "alumnoDB"@"%";
+LOCK TABLES `sala_members` WRITE;
+/*!40000 ALTER TABLE `sala_members` DISABLE KEYS */;
+INSERT INTO `sala_members` VALUES (1,'11111111',0),(1,'33333333',0),(1,'44444444',0),(1,'66666666',0),(1,'77777777',0),(2,'11111111',0),(2,'33333333',0),(2,'44444444',0),(2,'66666666',0),(2,'77777777',0),(3,'11111111',0),(3,'33333333',0),(3,'44444444',0),(3,'66666666',0),(3,'77777777',0),(4,'11111111',0),(4,'33333333',0),(4,'44444444',0),(4,'66666666',0),(4,'77777777',0),(5,'11111111',0),(5,'22222222',0),(5,'44444444',0),(5,'77777777',0),(6,'11111111',0),(6,'22222222',0),(6,'44444444',0),(6,'77777777',0),(7,'11111111',0),(7,'22222222',0),(7,'44444444',0),(7,'77777777',0),(8,'22222222',0),(8,'66666666',0),(8,'77777777',0),(9,'22222222',0),(9,'66666666',0),(9,'77777777',0),(10,'22222222',0),(10,'66666666',0),(10,'77777777',0),(11,'11111111',0),(11,'33333333',0),(11,'44444444',0),(11,'66666666',0),(11,'88888888',0),(12,'11111111',0),(12,'33333333',0),(12,'44444444',0),(12,'66666666',0),(12,'88888888',0),(13,'11111111',0),(13,'33333333',0),(13,'44444444',0),(13,'66666666',0),(13,'88888888',0),(14,'11111111',0),(14,'33333333',0),(14,'44444444',0),(14,'66666666',0),(14,'88888888',0),(15,'22222222',0),(15,'66666666',0),(15,'88888888',0),(16,'22222222',0),(16,'66666666',0),(16,'88888888',0),(17,'22222222',0),(17,'66666666',0),(17,'88888888',0),(18,'22222222',0),(18,'66666666',0),(18,'88888888',0);
+/*!40000 ALTER TABLE `sala_members` ENABLE KEYS */;
+UNLOCK TABLES;
 
-GRANT INSERT ON ultimadb.ConsultaPrivada TO "alumnoDB"@"%";
-GRANT INSERT ON ultimadb.CP_mensaje TO "alumnoDB"@"%";
-GRANT INSERT ON ultimadb.Sala TO "alumnoDB"@"%";
-GRANT INSERT ON ultimadb.Sala_mensaje TO "alumnoDB"@"%";
-GRANT INSERT ON ultimadb.userLogs TO "alumnoDB"@"%";
+--
+-- Table structure for table `sala_mensaje`
+--
 
+DROP TABLE IF EXISTS `sala_mensaje`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sala_mensaje` (
+  `idSala` int(10) unsigned NOT NULL,
+  `idMensaje` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `autorCi` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `contenido` varchar(5000) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `fechaHora` datetime NOT NULL,
+  PRIMARY KEY (`idMensaje`),
+  KEY `idSala` (`idSala`),
+  KEY `autorCi` (`autorCi`),
+  CONSTRAINT `sala_mensaje_ibfk_1` FOREIGN KEY (`idSala`) REFERENCES `sala` (`idSala`),
+  CONSTRAINT `sala_mensaje_ibfk_2` FOREIGN KEY (`autorCi`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-CREATE USER "docenteDB"@"%" IDENTIFIED BY "docenteclave";
-GRANT UPDATE (CLAVE,FOTO,AVATAR,ENLINEA,ISDELETED) ON ultimaDB.persona TO "docenteDB"@"%";
-GRANT UPDATE (LOGOUT) ON ultimaDB.userLogs TO "docenteDB"@"%";
-GRANT UPDATE (TIMESTART,TIMEEND) ON ultimaDB.Horario TO "docenteDB"@"%";
-GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "docenteDB"@"%";
-GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "docenteDB"@"%";
-GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "docenteDB"@"%";
+--
+-- Dumping data for table `sala_mensaje`
+--
 
-GRANT SELECT ON ultimaDB.Persona TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.grupo TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.alumno TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.docente TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.Horario TO "alumnoDB"@"%";
-GRANT SELECT ON ultimaDB.materia TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.grupo_tiene_materia TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.alumno_tiene_Grupo TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.docente_dicta_G_M TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.ConsultaPrivada TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.CP_mensaje TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.Sala TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.Sala_members TO "docenteDB"@"%";
-GRANT SELECT ON ultimaDB.Sala_mensaje TO "docenteDB"@"%";
+LOCK TABLES `sala_mensaje` WRITE;
+/*!40000 ALTER TABLE `sala_mensaje` DISABLE KEYS */;
+INSERT INTO `sala_mensaje` VALUES (1,1,'11111111','Hola podemos discutir lo del prat 1?','2021-09-05 00:00:00'),(1,2,'33333333','yes im very lost help me','2021-09-06 00:00:00'),(1,3,'77777777','sii pregunta nomas y yo les contesto ','2021-09-08 00:00:00'),(1,4,'77777777','msg3','2021-09-08 00:00:00'),(1,5,'77777777','masg4','2021-09-07 00:00:00'),(1,6,'77777777','msg5','2021-09-10 00:00:00'),(1,7,'77777777','msg6','2021-09-09 00:00:00'),(1,8,'77777777','jelly','2021-09-10 00:00:00'),(2,9,'77777777','buenas chicoos','2021-08-26 00:00:00'),(2,10,'77777777','Hoy vamos a hacer x cosa','2021-08-31 00:00:00'),(3,11,'77777777','hola son el grupo 3ro?','2021-09-06 00:00:00'),(4,12,'77777777','Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.','2021-08-31 00:00:00'),(4,13,'77777777','Lorem ipsum dolor sit amet, consectetur adipiscing elgna aliqua.','2021-09-05 00:00:00');
+/*!40000 ALTER TABLE `sala_mensaje` ENABLE KEYS */;
+UNLOCK TABLES;
 
-GRANT INSERT ON ultimadb.userLogs TO "docenteDB"@"%";
-GRANT INSERT ON ultimadb.Horario TO "docenteDB"@"%";
-GRANT INSERT ON ultimadb.CP_mensaje TO "docenteDB"@"%";
-GRANT INSERT ON ultimadb.Sala TO "docenteDB"@"%";
-GRANT INSERT ON ultimadb.Sala_mensaje TO "docenteDB"@"%";
+--
+-- Table structure for table `userlogs`
+--
 
+DROP TABLE IF EXISTS `userlogs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `userlogs` (
+  `ci` char(8) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `login` datetime NOT NULL,
+  `logOut` datetime DEFAULT NULL,
+  KEY `ci` (`ci`),
+  CONSTRAINT `userlogs_ibfk_1` FOREIGN KEY (`ci`) REFERENCES `persona` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-CREATE USER "adminDB"@"%" IDENTIFIED BY "adminclave";
-GRANT SELECT ON ultimaDB.* TO "adminDB"@"%";
+--
+-- Dumping data for table `userlogs`
+--
 
-GRANT INSERT ON ultimadb.grupo TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Materia TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Orientacion TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Persona TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Alumno TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Docente TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.Administrador TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
-GRANT INSERT ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
+LOCK TABLES `userlogs` WRITE;
+/*!40000 ALTER TABLE `userlogs` DISABLE KEYS */;
+INSERT INTO `userlogs` VALUES ('11111111','2021-08-30 00:00:00','2021-08-30 00:00:00'),('11111111','2021-08-31 00:00:00','2021-08-31 00:00:00'),('11111111','2021-09-01 00:00:00','2021-09-01 00:00:00'),('11111111','2021-09-02 00:00:00','2021-09-02 00:00:00'),('11111111','2021-09-03 00:00:00','2021-09-09 00:00:00'),('77777777','2021-08-30 00:00:00','2021-08-30 00:00:00'),('77777777','2021-08-31 00:00:00','2021-08-31 00:00:00'),('77777777','2021-09-01 00:00:00','2021-09-01 00:00:00'),('77777777','2021-09-02 00:00:00','2021-09-02 00:00:00');
+/*!40000 ALTER TABLE `userlogs` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
-GRANT UPDATE (NOMBRE,APELLIDO,CLAVE,FOTO,AVATAR,ISDELETED) ON ultimadb.Persona TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.grupo TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.Materia TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.Orientacion TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
-GRANT UPDATE ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
-GRANT DELETE ON ultimadb.grupo TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Materia TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Orientacion TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Persona TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Alumno TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Docente TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.Administrador TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
-GRANT DELETE ON ultimadb.alumnoTemp TO "adminDB"@"%";
-
--- ********************************DEMO***********************************************
-
-INSERT INTO Grupo (nombreGrupo) VALUES 
-('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
-
-INSERT INTO Materia(nombreMateria) VALUES
-('mat1'),('geo1'),('prog1'),('SO1'),('taller1'),
-('mat2'),('geo2'),('prog2'),('SO2'),('taller2'),
-('mat3'),('prog3'),('SO3'),('redes y soporte'),('disenio web'),('unity');
-
-INSERT INTO Grupo_tiene_Materia VALUES 
-(1,1),(1,2),(1,3),(1,4),(1,5),
-(2,6),(2,7),(2,8),(2,9),(2,10),
-(3,11),(3,12),(3,13),(3,14),
-(4,11),(4,12),(4,13),(4,15),
-(5,11),(5,12),(5,13),(5,16);
-
-INSERT INTO Orientacion(nombreOrientacion) VALUES
-('desarollo y soporte'),('disenio web'),('disenio de juegos');
-
-INSERT INTO Orientacion_tiene_Grupo VALUES
-(1,3),
-(2,4),
-(3,5);
-
-INSERT INTO Persona (ci,nombre,apellido,clave,foto,avatar) VALUES
-(11111111,'Penelope','cruz','clave1',NULL,NULL),
-(22222222,'pepe','red','clave2',NULL,NULL),
-(33333333,'coco','rock','clave3',NULL,NULL),
-(44444444,'lex','luther','clave4',NULL,NULL),
-(55555555,'arm','pit','clave5',NULL,NULL),
-(66666666,'amy','schumer','clave6',NULL,NULL),
-(77777777,'abel','sings','clave7',NULL,NULL),
-(88888888,'sal','gore','clave8',NULL,NULL),
-(99999999,'adam','sandler','adminclave',NULL,NULL);
-
-INSERT INTO userLogs (ci, login, logout) VALUES
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +1 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))); 
-
-
-
-INSERT INTO Administrador(ci) VALUES (99999999);
-
-INSERT INTO Docente (ci) VALUES
-(77777777),
-(88888888);
-
-INSERT INTO Docente_dicta_G_M VALUES
-(1,1,77777777),
-(1,2,NULL),
-(1,4,NULL),
-(1,5,NULL),
-(2,6,77777777),
-(2,7,NULL),
-(2,8,NULL),
-(2,9,NULL),
-(2,10,NULL),
-(3,13,NULL),
-(3,14,NULL),
-(4,11,NULL),
-(4,12,NULL),
-(4,13,NULL),
-(4,15,NULL),
-(5,11,NULL),
-(5,12,NULL),
-(5,13,NULL),
-(5,16,NULL),
-(3,11,77777777),
-(1,3,88888888),
-(3,12,88888888);
-
-INSERT INTO Alumno (ci,apodo) VALUES
-(11111111,'cruzzz'),
-(22222222,'pRed'),
-(33333333,'cRock'),
-(44444444,'Lexy'),
-(55555555,'pittt'),
-(66666666,'ahumer');
-
-INSERT INTO Alumno_tiene_Grupo VALUES 
-(11111111,1),
-(11111111,2),
-(22222222,3),
-(33333333,1),
-(44444444,2),
-(55555555,5),
-(66666666,3),
-(66666666,1),
-(22222222,2),
-(44444444,1);
-
-INSERT INTO ConsultaPrivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus,cpFechaHora) VALUES
-(1,77777777,11111111,'hola','pendiente',NOW()),
-(1,77777777,22222222,'profe hello','pendiente',NOW()),
-(1,77777777,33333333,'soy tu alumno','pendiente',NOW()),
-(1,77777777,44444444,'prat1','pendiente',NOW()),
-(1,88888888,11111111,'prat1 ej3','pendiente',NOW()),
-(1,88888888,33333333,'prat4','pendiente',NOW()),
-(1,88888888,55555555,'prat3','pendiente',NOW()),
-(2,77777777,11111111,'HOLAAAA','pendiente',NOW()),
-(3,77777777,11111111,'todobien?','pendiente',NOW()),
-(4,77777777,11111111,'faltas hoy?','pendiente',NOW()),
-(5,77777777,11111111,'jelly','pendiente',NOW()),
-(6,77777777,11111111,'hola','resuelta',NOW());
-
-
-INSERT INTO CP_Mensaje (idCp_mensaje,idConsultaPrivada,ciDocente,ciAlumno,contenido,attachment,cp_mensajeFechaHora,cp_mensajeStatus, ciDestinatario)
-VALUES 
-(1,1,77777777,11111111,'this is a test, search for my words',NULL,NOW(),'recibido',77777777),
-(2,1,77777777,11111111,'jelly doughnut',NULL,NOW(),'leido',11111111),
-(1,1,77777777,22222222,'go to the city',NULL,NOW(),'recibido',77777777),
-(2,1,77777777,22222222,'live like a demon',NULL,NOW(),'recibido',22222222),
-(1,1,77777777,33333333,'give up',NULL,NOW(),'leido',77777777),
-(2,1,77777777,33333333,'check the jelly',NULL,NOW(),'leido',77777777),
-(1,1,77777777,44444444,'nope',NULL,NOW(),'leido',77777777),
-(2,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',44444444),
-(1,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
-(2,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',11111111),
-(1,1,88888888,33333333,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
-(2,1,88888888,33333333,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',33333333),
-(1,1,88888888,55555555,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
-(1,2,77777777,11111111,'asdasda',NULL,NOW(),'recibido',77777777),
-(2,2,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
-(1,3,77777777,11111111,'cat',NULL,NOW(),'recibido',77777777),
-(2,3,77777777,11111111,'asdasda',NULL,NOW(),'recibido',11111111),
-(1,4,77777777,11111111,'jelly welly',NULL,NOW(),'recibido',77777777),
-(2,4,77777777,11111111,'blah blah',NULL,NOW(),'recibido',11111111),
-(1,5,77777777,11111111,'jelly',NULL,NOW(),'recibido','77777777'),
-(1,6,77777777,11111111,'hola',NULL,NOW(),"recibido",'77777777');
-
-INSERT INTO Sala (idGrupo,idMateria,docenteCi,anfitrion,resumen,creacion,isDone) VALUES
-(1,1,77777777,11111111,"se hablo del prat 1 de polinomios",DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),FALSE),
-(1,1,77777777,11111111,"2domsgg",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
-(1,1,77777777,11111111,"demooososo",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
-(1,1,77777777,11111111,"jelly",DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
-
-
-(2,6,77777777,77777777,"revisamos el ejercicio 10 de prat 2",DATE(DATE_SUB(NOW(), INTERVAL +16 DAY)),TRUE),
-(2,6,77777777,77777777,"revision primer escrito", DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),TRUE),
-(2,6,77777777,77777777,"demostracion rufini", DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),TRUE),
-
-(3,11,77777777,77777777,"E.A y R.G de 1/x", DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),TRUE),
-(3,11,77777777,77777777,"dudas prat1", DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),TRUE),
-(3,11,77777777,77777777,"dudas prat2", DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),FALSE),
-
-(1,3,88888888,88888888,"intro a java", DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),TRUE),
-(1,3,88888888,88888888,"intro de programacion orientada a objetos", DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),TRUE),
-(1,3,88888888,88888888,"estructuras repetitivas", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY)),TRUE),
-(1,3,88888888,88888888,"condicionales", DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),FALSE),
-
-(3,12,88888888,88888888,"INTRO A C#", DATE(DATE_SUB(NOW(), INTERVAL +3 DAY)),TRUE),
-(3,12,88888888,88888888,"Capas de datos", DATE(DATE_SUB(NOW(), INTERVAL +2 DAY)),TRUE),
-(3,12,88888888,88888888,"calculadora en c#", DATE(DATE_SUB(NOW(), INTERVAL +1 DAY)),TRUE),
-(3,12,88888888,88888888,"ejemplo de conexion a base de datos c#", DATE(DATE_SUB(NOW(), INTERVAL +5 HOUR)),FALSE);
-
-
-
-INSERT INTO Sala_mensaje (idSala,autorCi,contenido,fechaHora) VALUES 
-(1,11111111,"Hola podemos discutir lo del prat 1?", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY))),
-(1,33333333,"yes im very lost help me", DATE(DATE_SUB(NOW(), INTERVAL +4 DAY))),
-(1,77777777,"sii pregunta nomas y yo les contesto ",  DATE(DATE_SUB(NOW(), INTERVAL +2 DAY))),
-(1,77777777,"msg3",  DATE(DATE_SUB(NOW(), INTERVAL +2 DAY ))),
-(1,77777777,"masg4",  DATE(DATE_SUB(NOW(), INTERVAL +3 DAY))),
-(1,77777777,"msg5",  DATE(DATE_SUB(NOW(), INTERVAL +5 HOUR))),
-(1,77777777,"msg6",  DATE(DATE_SUB(NOW(), INTERVAL +1 DAY))),
-(1,77777777,"jelly",  DATE(DATE_SUB(NOW(), INTERVAL +1 HOUR))),
-
-(2,77777777,"buenas chicoos", DATE(DATE_SUB(NOW(), INTERVAL +15 DAY))),
-(2,77777777,"Hoy vamos a hacer x cosa", DATE(DATE_SUB(NOW(), INTERVAL +10 DAY))),
-
-(3,77777777,"hola son el grupo 3ro?", DATE(DATE_SUB(NOW(), INTERVAL +4 DAY))),
-
-(4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL +10 DAY))),
-(4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elgna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY)));
+-- Dump completed on 2021-09-10  9:37:15
