@@ -402,6 +402,8 @@ GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "alumnoDB"@"%";
 GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "alumnoDB"@"%";
 GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "alumnoDB"@"%";
 GRANT UPDATE (LOGOUT) ON ultimaDB.userLogs TO "alumnoDB"@"%";
+GRANT UPDATE (CPSTATUS) ON ultimaDB.ConsultaPrivada TO "alumnoDB"@"%";
+
 
 GRANT SELECT ON ultimaDB.Persona TO "alumnoDB"@"%";
 GRANT SELECT ON ultimaDB.grupo TO "alumnoDB"@"%";
@@ -432,6 +434,7 @@ GRANT UPDATE (TIMESTART,TIMEEND) ON ultimaDB.Horario TO "docenteDB"@"%";
 GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "docenteDB"@"%";
 GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "docenteDB"@"%";
 GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "docenteDB"@"%";
+GRANT UPDATE (CPSTATUS) ON ultimaDB.ConsultaPrivada TO "docenteDB"@"%";
 
 GRANT SELECT ON ultimaDB.Persona TO "docenteDB"@"%";
 GRANT SELECT ON ultimaDB.grupo TO "docenteDB"@"%";
