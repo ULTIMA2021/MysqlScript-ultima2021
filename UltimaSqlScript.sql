@@ -40,6 +40,7 @@ WHERE enLinea=true AND d.ci=p.ci;
 
 -- trae las consultas donde el contenido de los mensajes o el titulo de la consulta contienen algun string
 -- se ordenan por fecha, descending 
+
 set @algunaPalabra="jelly";
 select distinct c.* from consultaPrivada c 
 where (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
@@ -151,10 +152,9 @@ CREATE TABLE Persona (
     ci CHAR(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(26) NOT NULL,
     apellido VARCHAR(26) NOT NULL,
-    clave VARCHAR(32) NOT NULL ,
+    clave VARCHAR(304) NOT NULL ,
     isDeleted BOOL NOT NULL DEFAULT FALSE,
     foto BLOB  NULL,
-    avatar BLOB  NULL,
     enLinea BOOL DEFAULT FALSE,
     INDEX(ci));	
     
@@ -193,6 +193,7 @@ timeEnd>timeStart
 
 -- 0 = sunday ... 6 = saturday
 CREATE TABLE Horario (
+	id  INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
     ci CHAR(8) NOT NULL,
     dia TINYINT(1) UNSIGNED NULL,
     timeStart SMALLINT(4) UNSIGNED NULL,
@@ -202,13 +203,12 @@ CREATE TABLE Horario (
         REFERENCES Docente (ci)
 );
  
- 
  -- grupos will be stored as a string and filtered with regular expression
 CREATE TABLE AlumnoTemp (
     ci CHAR(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
-    clave VARCHAR(32) NOT NULL,
+    clave VARCHAR(304) NOT NULL,
     foto BLOB NULL,
     avatar BLOB NULL,
     apodo VARCHAR(20) NOT NULL,
@@ -317,6 +317,13 @@ FOREIGN KEY (autorCi) REFERENCES Persona (ci));
 
 -- ********************************************TRIGGERS
 delimiter $$
+CREATE TRIGGER alumnoTp AFTER INSERT ON Alumno
+FOR EACH ROW 
+BEGIN
+DELETE FROM AlumnoTemp WHERE ci=NEW.ci; 
+END$$
+
+
 CREATE TRIGGER loadMembersToSala AFTER INSERT ON Sala 
 FOR EACH ROW
 BEGIN
@@ -365,16 +372,15 @@ END IF;
 END$$
 delimiter ;
 
--- *************************************************************USERS FOR LOGIN
-DROP USER alumnoLogin@'%';
-DROP USER docenteLogin@'%';
-DROP USER adminLogin@'%';
-DROP USER alumnoDB@'%';
-DROP USER docenteDB@'%';
-DROP USER adminDB@'%';
-
+DROP USER IF EXISTS alumnoLogin@'%';
+DROP USER IF EXISTS docenteLogin@'%';
+DROP USER IF EXISTS adminLogin@'%';
+DROP USER IF EXISTS alumnoDB@'%';
+DROP USER IF EXISTS docenteDB@'%';
+DROP USER IF EXISTS adminDB@'%';
 
 CREATE USER "alumnoLogin"@"%" IDENTIFIED BY "alumnoLogin";
+
 GRANT SELECT (CI) ON ultimaDB.Alumno TO "alumnoLogin"@"%";
 GRANT SELECT ON ultimaDB.Persona TO "alumnoLogin"@"%";
 GRANT SELECT ON ultimaDB.Grupo TO "alumnoLogin"@"%";
@@ -391,7 +397,7 @@ GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "adminL
 -- *************************************************************USUARIOS NORMALES DE LA APP
 
 CREATE USER "alumnoDB"@"%" IDENTIFIED BY "alumnoclave";
-GRANT UPDATE (CLAVE,FOTO,AVATAR,ENLINEA,ISDELETED) ON ultimaDB.persona TO "alumnoDB"@"%";
+GRANT UPDATE (CLAVE,FOTO,ENLINEA,ISDELETED) ON ultimaDB.persona TO "alumnoDB"@"%";
 GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "alumnoDB"@"%";
 GRANT UPDATE (CP_MENSAJESTATUS) ON ultimaDB.CP_mensaje TO "alumnoDB"@"%";
 GRANT UPDATE (ISDONE) ON ultimaDB.Sala TO "alumnoDB"@"%";
@@ -420,7 +426,7 @@ GRANT INSERT ON ultimadb.userLogs TO "alumnoDB"@"%";
 
 
 CREATE USER "docenteDB"@"%" IDENTIFIED BY "docenteclave";
-GRANT UPDATE (CLAVE,FOTO,AVATAR,ENLINEA,ISDELETED) ON ultimaDB.persona TO "docenteDB"@"%";
+GRANT UPDATE (CLAVE,FOTO,ENLINEA,ISDELETED) ON ultimaDB.persona TO "docenteDB"@"%";
 GRANT UPDATE (LOGOUT) ON ultimaDB.userLogs TO "docenteDB"@"%";
 GRANT UPDATE (TIMESTART,TIMEEND) ON ultimaDB.Horario TO "docenteDB"@"%";
 GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "docenteDB"@"%";
@@ -464,7 +470,7 @@ GRANT INSERT ON ultimadb.Administrador TO "adminDB"@"%";
 GRANT INSERT ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
 GRANT INSERT ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
 
-GRANT UPDATE (NOMBRE,APELLIDO,CLAVE,FOTO,AVATAR,ISDELETED) ON ultimadb.Persona TO "adminDB"@"%";
+GRANT UPDATE (NOMBRE,APELLIDO,CLAVE,FOTO,ISDELETED,ENLINEA) ON ultimadb.Persona TO "adminDB"@"%";
 GRANT UPDATE ON ultimadb.grupo TO "adminDB"@"%";
 GRANT UPDATE ON ultimadb.Materia TO "adminDB"@"%";
 GRANT UPDATE ON ultimadb.Orientacion TO "adminDB"@"%";
@@ -511,16 +517,17 @@ INSERT INTO Orientacion_tiene_Grupo VALUES
 (2,4),
 (3,5);
 
-INSERT INTO Persona (ci,nombre,apellido,clave,foto,avatar) VALUES
-(11111111,'Penelope','cruz','clave1',NULL,NULL),
-(22222222,'pepe','red','clave2',NULL,NULL),
-(33333333,'coco','rock','clave3',NULL,NULL),
-(44444444,'lex','luther','clave4',NULL,NULL),
-(55555555,'arm','pit','clave5',NULL,NULL),
-(66666666,'amy','schumer','clave6',NULL,NULL),
-(77777777,'abel','sings','clave7',NULL,NULL),
-(88888888,'sal','gore','clave8',NULL,NULL),
-(99999999,'adam','sandler','adminclave',NULL,NULL);
+INSERT INTO Persona (ci,nombre,apellido,clave,foto) VALUES
+(11111111,'Penelope','cruz','mOþäÅ’–†óÊ8dzz¾”gÇåü4(\0XjyŠXÖË÷‰\rÐa,°¿_…¢qà Ûbcw`ßñ›ˆæÌóë',NULL),
+(22222222,'pepe','red','mø€þ¦AÒÇp­é1³l´^D\0ÙÍ·Ùº™ÒÙ„©‘•+l;¢ëŒ]hã‹šÞ«T„j ½¬-n¯Q%À¿6ôVŽu¢q',NULL),
+(33333333,'coco','rock','H^©R¶#ýÇÜwú“ÒUøàè°¦4?¢Ãu§ð€Ïì’CZZ¢àVpÝK3.Ã yì\n!Šk¶âæÃ\0‰JV',NULL),
+(44444444,'lex','luther','ÿÜÙv:ÿí´æ}¥GOÖ5¡zÌH-t¹ ]&â‘Ê±žõÀŸÞÆžÈœ&ƒ=œ ÿÐ<óIèŒh³í4b]~R',NULL),
+(55555555,'arm','pit','¶Žz¨lÔg±9Ø£u”‡•°0Ö=`9ÅÁÄ`\n`—Ti	 }ºëîþÚ³Ü9 Œ¼,$¿ó£‰ù8a7',NULL),
+(66666666,'amy','schumer','E–édüíÇý4+h–eé4K+¼Út?í£ú´~«JDwØ1œ› &]M1±êV ™ö;\0Î×ôÆµ]ôîÑP9®',NULL),
+(77777777,'abel','sings','÷&ÑŒWjW&…þÒúCš‘¿ï@-·ÊnÇ€Y)Úû ¬¢—ÍÎsm ¾ù4Æ®\ZàSdöq£äðQ',NULL),
+(88888888,'sal','gore','‹mnU%·cñRMýî¸\0’ù’kRv´JÕà9îÐ”x•<¾Ïì>Šþ•(éó DoÜhµ3ýWÐ™<ÚHö',NULL),
+(99999999,'adam','sandler','Üúýxåê-‚MH\\¶á´q	5*pt°Ze§Ù=^ºïd‡-LPôµ‰°”ö>}×| z“ðl–§	A¨yœ0	›4',NULL);
+
 
 INSERT INTO userLogs (ci, login, logout) VALUES
    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
