@@ -114,12 +114,12 @@ WHERE sme.ci= @ci;
 
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-nombreGrupo VARCHAR(10) NOT NULL,
+nombreGrupo VARCHAR(25) NOT NULL UNIQUE,
 INDEX (idGrupo));
 
 CREATE TABLE Materia(
 idMateria INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-nombreMateria VARCHAR(25) NOT NULL,
+nombreMateria VARCHAR(30) NOT NULL UNIQUE,
 INDEX (idMateria));
 
 CREATE TABLE Grupo_tiene_Materia (
@@ -135,7 +135,7 @@ CREATE TABLE Grupo_tiene_Materia (
 
 CREATE TABLE Orientacion(
 idOrientacion INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
-nombreOrientacion VARCHAR(25) NOT NULL,
+nombreOrientacion VARCHAR(30) NOT NULL UNIQUE,
 INDEX (idOrientacion)
 );
 
@@ -215,7 +215,8 @@ CREATE TABLE AlumnoTemp (
     grupos VARCHAR(30) NOT NULL,
     INDEX(ci)
 );
-    
+
+
 CREATE TABLE Docente_dicta_G_M (
     idGrupo INT NOT NULL,
     idMateria INT NOT NULL,
@@ -323,7 +324,6 @@ BEGIN
 DELETE FROM AlumnoTemp WHERE ci=NEW.ci; 
 END$$
 
-
 CREATE TRIGGER loadMembersToSala AFTER INSERT ON Sala 
 FOR EACH ROW
 BEGIN
@@ -353,8 +353,6 @@ END$$
 
 -- para crear nuevos logs y cerrar sesiones que no se cerraron correctamente sin usar un daemon
 -- cuando una persona logs in su estado de enLinea se cambia a true
-drop trigger userHasLogged;
-delimiter $$
 CREATE TRIGGER userHasLogged BEFORE UPDATE ON Persona
 FOR EACH ROW
 BEGIN
@@ -370,6 +368,33 @@ IF NEW.enLinea = true THEN
     END IF;
 END IF;
 END$$
+
+CREATE TRIGGER valGrupo BEFORE INSERT ON Grupo
+FOR EACH ROW
+BEGIN
+SET @trimmedName = (TRIM(NEW.nombreGrupo));
+	IF @trimmedName = '' THEN
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="name is invalid";
+END IF;
+END$$
+
+CREATE TRIGGER valMateria BEFORE INSERT ON Materia
+FOR EACH ROW
+BEGIN
+SET @trimmedName = (TRIM(NEW.nombreMateria));
+	IF @trimmedName = '' THEN
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="name is invalid";
+END IF;
+END$$
+
+CREATE TRIGGER valOrientacion BEFORE INSERT ON Orientacion
+FOR EACH ROW
+BEGIN
+SET @lengthNombre = (TRIM(NEW.nombreOrientacion));
+	IF @lengthNombre = "" THEN
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="name is invalid";
+END IF;
+END$$
 delimiter ;
 
 DROP USER IF EXISTS alumnoLogin@'%';
@@ -380,7 +405,6 @@ DROP USER IF EXISTS docenteDB@'%';
 DROP USER IF EXISTS adminDB@'%';
 
 CREATE USER "alumnoLogin"@"%" IDENTIFIED BY "alumnoLogin";
-
 GRANT SELECT (CI) ON ultimaDB.Alumno TO "alumnoLogin"@"%";
 GRANT SELECT ON ultimaDB.Persona TO "alumnoLogin"@"%";
 GRANT SELECT ON ultimaDB.Grupo TO "alumnoLogin"@"%";
@@ -658,8 +682,6 @@ INSERT INTO Sala (idGrupo,idMateria,docenteCi,anfitrion,resumen,creacion,isDone)
 (3,12,88888888,88888888,"Capas de datos", DATE(DATE_SUB(NOW(), INTERVAL +2 DAY)),TRUE),
 (3,12,88888888,88888888,"calculadora en c#", DATE(DATE_SUB(NOW(), INTERVAL +1 DAY)),TRUE),
 (3,12,88888888,88888888,"ejemplo de conexion a base de datos c#", DATE(DATE_SUB(NOW(), INTERVAL +5 HOUR)),FALSE);
-
-
 
 INSERT INTO Sala_mensaje (idSala,autorCi,contenido,fechaHora) VALUES 
 (1,11111111,"Hola podemos discutir lo del prat 1?", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY))),
