@@ -44,11 +44,11 @@ WHERE enLinea=true AND d.ci=p.ci;
 set @algunaPalabra="jelly";
 select distinct c.* from consultaPrivada c 
 where (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
-	in (select idConsultaPrivada,ciDocente,ciAlumno from CP_mensaje where
-		INSTR(contenido,@algunaPalabra) > 0) 
+	in (select idConsultaPrivada,ciDocente,ciAlumno from CP_mensaje where 
+		INSTR(contenido COLLATE utf8mb4_general_ci ,@algunaPalabra) > 0) 
 OR (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
 	in (select idConsultaPrivada,docenteCi,alumnoCi from consultaPrivada where
-		INSTR(titulo,@algunaPalabra) > 0)
+		INSTR(titulo COLLATE utf8mb4_general_ci ,@algunaPalabra) > 0)
 order by cpFechaHora desc;
 
 
@@ -58,10 +58,10 @@ set @algunaPalabra="jelly";
 select distinct * from Sala
 where (idSala) 
 	in (select idSala from Sala where
-		INSTR(resumen,@algunaPalabra) > 0)
+		INSTR(resumen COLLATE utf8mb4_general_ci,@algunaPalabra) > 0)
 OR (idSala) 
 	in (select idSala from Sala_mensaje where
-		INSTR(contenido,@algunaPalabra) > 0)
+		INSTR(contenido COLLATE utf8mb4_general_ci,@algunaPalabra) > 0)
 order by creacion desc;
 
 
@@ -115,11 +115,13 @@ WHERE sme.ci= @ci;
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreGrupo VARCHAR(25) NOT NULL UNIQUE,
+isDeleted BOOL NOT NULL DEFAULT FALSE,
 INDEX (idGrupo));
 
 CREATE TABLE Materia(
 idMateria INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
 nombreMateria VARCHAR(30) NOT NULL UNIQUE,
+isDeleted BOOL NOT NULL DEFAULT FALSE,
 INDEX (idMateria));
 
 CREATE TABLE Grupo_tiene_Materia (
@@ -128,14 +130,15 @@ CREATE TABLE Grupo_tiene_Materia (
     PRIMARY KEY (idGrupo , idMateria),
     INDEX (idGrupo,idMateria),
     FOREIGN KEY (idGrupo)
-        REFERENCES Grupo (idGrupo),
+        REFERENCES Grupo (idGrupo) ,
     FOREIGN KEY (idMateria)
-        REFERENCES Materia (idMateria)
+        REFERENCES Materia (idMateria) 
 ); 
 
 CREATE TABLE Orientacion(
 idOrientacion INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreOrientacion VARCHAR(30) NOT NULL UNIQUE,
+isDeleted BOOL NOT NULL DEFAULT FALSE,
 INDEX (idOrientacion)
 );
 
@@ -144,8 +147,8 @@ idOrientacion INT NOT NULL,
 idGrupo INT NOT NULL,
 PRIMARY KEY (idGrupo),
 INDEX (idGrupo),
-FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo),
-FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion)
+FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo) ,
+FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion) 
 );
 
 CREATE TABLE Persona (
@@ -163,22 +166,19 @@ CREATE TABLE userLogs (
     login DATETIME NOT NULL,
 	logOut DATETIME NULL,
     INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Persona (ci));
+    FOREIGN KEY (ci) REFERENCES Persona (ci) );
    
 CREATE TABLE Administrador (
     ci CHAR(8) NOT NULL UNIQUE,
     PRIMARY KEY (ci),
-    FOREIGN KEY (ci)
-        REFERENCES persona (ci)
+    FOREIGN KEY (ci) REFERENCES persona (ci) 
 );
 
 CREATE TABLE Docente (
 	ci CHAR(8) NOT NULL UNIQUE,
     PRIMARY KEY (ci),
     INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Persona (ci)
+    FOREIGN KEY (ci) REFERENCES Persona (ci) 
 );
 /*
 uses military time 
@@ -199,8 +199,7 @@ CREATE TABLE Horario (
     timeStart SMALLINT(4) UNSIGNED NULL,
 	timeEnd  SMALLINT(4) UNSIGNED NULL,
     INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Docente (ci)
+    FOREIGN KEY (ci) REFERENCES Docente (ci) 
 );
  
  -- grupos will be stored as a string and filtered with regular expression
@@ -223,12 +222,9 @@ CREATE TABLE Docente_dicta_G_M (
     docenteCi CHAR(8),
     PRIMARY KEY (idGrupo , idMateria),
     INDEX (docenteCi),
-    FOREIGN KEY (idGrupo)
-        REFERENCES Grupo (idGrupo),
-    FOREIGN KEY (idMateria)
-        REFERENCES Materia (idMateria),
-    FOREIGN KEY (docenteCi)
-        REFERENCES Docente (ci)
+    FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo) ,
+    FOREIGN KEY (idMateria) REFERENCES Materia (idMateria) ,
+    FOREIGN KEY (docenteCi) REFERENCES Docente (ci) 
 );
 
 CREATE TABLE Alumno (
@@ -236,8 +232,7 @@ CREATE TABLE Alumno (
     apodo VARCHAR(20) UNIQUE NOT NULL,
     PRIMARY KEY(ci),
     INDEX (ci),
-    FOREIGN KEY (ci)
-        REFERENCES Persona (ci)
+    FOREIGN KEY (ci) REFERENCES Persona (ci) 
 );
 
 CREATE TABLE Alumno_tiene_Grupo(
@@ -245,8 +240,8 @@ alumnoCi CHAR(8) NOT NULL,
 idGrupo INT NOT NULL,
 PRIMARY KEY (alumnoCi,idGrupo),
 INDEX(alumnoCi,idGrupo),
-FOREIGN KEY (alumnoCi) REFERENCES Alumno(ci),
-FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo)
+FOREIGN KEY (alumnoCi) REFERENCES Alumno(ci) ,
+FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo) 
 );
 
 CREATE TABLE ConsultaPrivada (
@@ -258,10 +253,8 @@ CREATE TABLE ConsultaPrivada (
     cpFechaHora DATETIME NOT NULL,
     PRIMARY KEY (idConsultaPrivada,docenteCi, alumnoCi),
     INDEX (idConsultaPrivada,docenteCi, alumnoCi),
-    FOREIGN KEY (docenteCi)
-        REFERENCES Docente (ci),
-    FOREIGN KEY (alumnoCi)
-        REFERENCES Alumno (ci));
+    FOREIGN KEY (docenteCi) REFERENCES Docente (ci) ,
+    FOREIGN KEY (alumnoCi) REFERENCES Alumno (ci) );
 
 CREATE TABLE CP_mensaje(
 idCp_mensaje INT NOT NULL,
@@ -275,10 +268,10 @@ cp_mensajeStatus ENUM('recibido','leido') NOT NULL,
 ciDestinatario CHAR(8) NOT NULL,
 PRIMARY KEY(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
 INDEX(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
-FOREIGN KEY (idConsultaPrivada) REFERENCES ConsultaPrivada (idConsultaPrivada),
-FOREIGN KEY (ciAlumno) REFERENCES Alumno (ci),
-FOREIGN KEY (ciDocente) REFERENCES Docente (ci),
-FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci));
+FOREIGN KEY (idConsultaPrivada) REFERENCES ConsultaPrivada (idConsultaPrivada) ,
+FOREIGN KEY (ciAlumno) REFERENCES Alumno (ci) ,
+FOREIGN KEY (ciDocente) REFERENCES Docente (ci) ,
+FOREIGN KEY (ciDestinatario) REFERENCES Persona (ci)  );
 
 CREATE TABLE Sala(
 idSala INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -291,11 +284,16 @@ isDone BOOL DEFAULT FALSE NOT NULL,
 creacion DATETIME NOT NULL,
 PRIMARY KEY (idSala),
 INDEX(idSala,idGrupo,idMateria),
-FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo),
-FOREIGN KEY (idMateria) REFERENCES Materia (idMateria),
-FOREIGN KEY (docenteCi) REFERENCES Docente (ci),
-FOREIGN KEY (anfitrion) REFERENCES Persona (ci)
+FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo) ,
+FOREIGN KEY (idMateria) REFERENCES Materia (idMateria) ,
+FOREIGN KEY (docenteCi) REFERENCES Docente (ci) ,
+FOREIGN KEY (anfitrion) REFERENCES Persona (ci) 
 );
+/*
+SELECT COUNT(*) FROM Sala WHERE idGrupo=@idGrupo OR idMateria=@idMateria;
+SELECT COUNT(*) FROM Alumno_tiene_Grupo WHERE idGrupo=@idGrupo;
+SELECT COUNT(*) FROM Docente_dicta_G_M WHERE idGrupo=@idGrupo OR idMateria=@idMateria;
+*/
 
 CREATE TABLE Sala_members(
 idSala INT UNSIGNED NOT NULL,
@@ -303,7 +301,7 @@ ci CHAR(8) NOT NULL,
 isConnected BOOL DEFAULT FALSE NOT NULL,
 PRIMARY KEY (idSala,ci),
 INDEX (idSala,ci),
-FOREIGN KEY (idSala) REFERENCES Sala (idSala),
+FOREIGN KEY (idSala) REFERENCES Sala (idSala) ,
 FOREIGN KEY (ci) REFERENCES Persona (ci));
 
 CREATE TABLE Sala_mensaje(
@@ -313,8 +311,8 @@ autorCi CHAR(8) NOT NULL ,
 contenido VARCHAR(5000) NOT NULL,
 fechaHora DATETIME NOT NULL,
 INDEX (idSala),
-FOREIGN KEY (idSala) REFERENCES Sala (idSala),
-FOREIGN KEY (autorCi) REFERENCES Persona (ci));
+FOREIGN KEY (idSala) REFERENCES Sala (idSala) ,
+FOREIGN KEY (autorCi) REFERENCES Persona (ci) );
 
 -- ********************************************TRIGGERS
 delimiter $$
@@ -330,6 +328,8 @@ BEGIN
 INSERT INTO Sala_members(idSala,ci,isConnected) SELECT NEW.idSala,alumnoCi,FALSE FROM alumno_tiene_Grupo WHERE idGrupo=NEW.idGrupo;
 INSERT INTO Sala_members(idSala,ci,isConnected) VALUES (NEW.idSala,NEW.docenteCi,FALSE);
 END$$
+
+
 
 CREATE TRIGGER checkData BEFORE INSERT ON Persona 
 FOR EACH ROW
@@ -377,7 +377,7 @@ SET @trimmedName = (TRIM(NEW.nombreGrupo));
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="name is invalid";
 END IF;
 END$$
-
+      
 CREATE TRIGGER valMateria BEFORE INSERT ON Materia
 FOR EACH ROW
 BEGIN
@@ -419,7 +419,6 @@ GRANT SELECT (CI) ON ultimaDB.Administrador TO "adminLogin"@"%";
 GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "adminLogin"@"%";
 
 -- *************************************************************USUARIOS NORMALES DE LA APP
-
 CREATE USER "alumnoDB"@"%" IDENTIFIED BY "alumnoclave";
 GRANT UPDATE (CLAVE,FOTO,ENLINEA,ISDELETED) ON ultimaDB.persona TO "alumnoDB"@"%";
 GRANT UPDATE (ISCONNECTED) ON ultimaDB.Sala_members TO "alumnoDB"@"%";
