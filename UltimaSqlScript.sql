@@ -161,7 +161,7 @@ CREATE TABLE Persona (
     enLinea BOOL DEFAULT FALSE,
     INDEX(ci));	
     
-CREATE TABLE userLogs (
+CREATE TABLE UserLogs (
     ci CHAR(8) NOT NULL,
     login DATETIME NOT NULL,
 	logOut DATETIME NULL,
@@ -214,7 +214,6 @@ CREATE TABLE AlumnoTemp (
     grupos VARCHAR(30) NOT NULL,
     INDEX(ci)
 );
-
 
 CREATE TABLE Docente_dicta_G_M (
     idGrupo INT NOT NULL,
@@ -314,7 +313,6 @@ INDEX (idSala),
 FOREIGN KEY (idSala) REFERENCES Sala (idSala) ,
 FOREIGN KEY (autorCi) REFERENCES Persona (ci) );
 
--- ********************************************TRIGGERS
 delimiter $$
 CREATE TRIGGER alumnoTp AFTER INSERT ON Alumno
 FOR EACH ROW 
@@ -329,9 +327,7 @@ INSERT INTO Sala_members(idSala,ci,isConnected) SELECT NEW.idSala,alumnoCi,FALSE
 INSERT INTO Sala_members(idSala,ci,isConnected) VALUES (NEW.idSala,NEW.docenteCi,FALSE);
 END$$
 
-
-
-CREATE TRIGGER checkData BEFORE INSERT ON Persona 
+CREATE TRIGGER checkPersonaData BEFORE INSERT ON Persona 
 FOR EACH ROW
 BEGIN
 SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
@@ -341,7 +337,7 @@ IF @chartype> 0 OR @lengthCi !=8 THEN
 END IF;
 END$$
 
-CREATE TRIGGER checkDataNewAlumno BEFORE INSERT ON AlumnoTemp 
+CREATE TRIGGER checkAlumnoTempData BEFORE INSERT ON AlumnoTemp 
 FOR EACH ROW
 BEGIN
 SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
@@ -352,14 +348,16 @@ END IF;
 END$$
 
 -- para crear nuevos logs y cerrar sesiones que no se cerraron correctamente sin usar un daemon
--- cuando una persona logs in su estado de enLinea se cambia a true
+-- cuando una persona logs in su estado de enLinea se cambia a true eso dispara este trigger
+-- MAKE SURE WHEN PERSON EN LINEA IS UPDATED IN APP. ONLY THAT COLUMN IS BEING CHANGED. AND ON THE REST OF THE UPDATES DO NOT CALL ENLINEA
 CREATE TRIGGER userHasLogged BEFORE UPDATE ON Persona
 FOR EACH ROW
 BEGIN
-SET @count = (SELECT COUNT(*) FROM userLogs WHERE ci=NEW.ci);
+SET @countU = (SELECT COUNT(*) FROM userLogs WHERE ci=NEW.ci);
 SET @old = (SELECT logout FROM userLogs WHERE ci=NEW.ci AND logout IS NULL); 
+
 IF NEW.enLinea = true THEN
-	IF (@old IS NULL AND @count !=0) THEN 
+	IF (@old IS NULL AND @countU !=0) THEN 
 		UPDATE userLogs SET logout=now() WHERE ci= NEW.ci AND logout IS NULL;
         INSERT INTO userLogs (ci, login, logout) VALUES (NEW.ci, now(), null);
 	END IF;
@@ -368,8 +366,8 @@ IF NEW.enLinea = true THEN
     END IF;
 END IF;
 END$$
-
-CREATE TRIGGER valGrupo BEFORE INSERT ON Grupo
+-- triggers below this point need to be tested
+CREATE TRIGGER checkGrupo BEFORE INSERT ON Grupo
 FOR EACH ROW
 BEGIN
 SET @trimmedName = (TRIM(NEW.nombreGrupo));
@@ -378,7 +376,7 @@ SET @trimmedName = (TRIM(NEW.nombreGrupo));
 END IF;
 END$$
       
-CREATE TRIGGER valMateria BEFORE INSERT ON Materia
+CREATE TRIGGER checkMateria BEFORE INSERT ON Materia
 FOR EACH ROW
 BEGIN
 SET @trimmedName = (TRIM(NEW.nombreMateria));
@@ -387,13 +385,47 @@ SET @trimmedName = (TRIM(NEW.nombreMateria));
 END IF;
 END$$
 
-CREATE TRIGGER valOrientacion BEFORE INSERT ON Orientacion
+CREATE TRIGGER checkOrientacion BEFORE INSERT ON Orientacion
 FOR EACH ROW
 BEGIN
 SET @lengthNombre = (TRIM(NEW.nombreOrientacion));
 	IF @lengthNombre = "" THEN
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="name is invalid";
 END IF;
+END$$
+
+CREATE TRIGGER checkContentGrupo BEFORE DELETE ON Grupo
+FOR EACH ROW
+BEGIN
+SET @countSalasDeGrupo = (SELECT COUNT(*) FROM Sala WHERE idGrupo = OLD.idGrupo);
+   IF @countSalasDeGrupo > 0 THEN
+        UPDATE Sala SET isDone=true WHERE idGrupo=OLD.idGrupo;
+		UPDATE Grupo SET isDeleted=true WHERE idGrupo=OLD.idGrupo;
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Grupo isDeleted set to true";
+	END IF;	
+END$$
+
+CREATE TRIGGER checkContentMateria BEFORE DELETE ON Materia
+FOR EACH ROW
+BEGIN
+SET @countSalasDeMateria = (SELECT COUNT(*) FROM Sala WHERE idMateria = OLD.idMateria);
+   IF @countSalasDeMateria > 0 THEN
+        UPDATE Sala SET isDone=true WHERE idMateria=OLD.idMateria;
+		UPDATE Materia SET isDeleted=true WHERE idMateria=OLD.idMateria;
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Materia isDeleted set to true";
+	END IF;	
+END$$
+
+CREATE TRIGGER checkContentPersona BEFORE DELETE ON Persona
+FOR EACH ROW
+BEGIN
+SET @countLogs = (SELECT COUNT(*) FROM userLogs WHERE ci = OLD.ci);
+SET @countConsultas = (SELECT COUNT(*) FROM ConsultaPrivada WHERE alumnoCi = OLD.ci);
+SET @countMensajesSala = (SELECT COUNT(*) FROM Sala_mensaje WHERE autorCi =OLD.ci);
+   IF @countMensasjesSala + @countLogs + countConsultas > 0 THEN
+        UPDATE Persona SET isDeleted=true WHERE ci=OLD.ci;
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Persona isDeleted set to true";
+	END IF;	
 END$$
 delimiter ;
 
