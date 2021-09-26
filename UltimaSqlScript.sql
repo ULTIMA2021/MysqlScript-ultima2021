@@ -112,6 +112,7 @@ FROM sala_members sme
 WHERE sme.ci= @ci;
 */ 
 
+
 CREATE TABLE Grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreGrupo VARCHAR(25) NOT NULL UNIQUE,
@@ -127,6 +128,7 @@ INDEX (idMateria));
 CREATE TABLE Grupo_tiene_Materia (
     idGrupo INT NOT NULL,
     idMateria INT NOT NULL,
+    isDeleted BOOL NOT NULL DEFAULT FALSE,
     PRIMARY KEY (idGrupo , idMateria),
     INDEX (idGrupo,idMateria),
     FOREIGN KEY (idGrupo)
@@ -180,6 +182,7 @@ CREATE TABLE Docente (
     INDEX (ci),
     FOREIGN KEY (ci) REFERENCES Persona (ci) 
 );
+
 /*
 uses military time 
 0-2400
@@ -190,7 +193,6 @@ timeEnd must be after timeStart so
 timeEnd>timeStart
 
 */
-
 -- 0 = sunday ... 6 = saturday
 CREATE TABLE Horario (
 	id  INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
@@ -219,6 +221,7 @@ CREATE TABLE Docente_dicta_G_M (
     idGrupo INT NOT NULL,
     idMateria INT NOT NULL,
     docenteCi CHAR(8),
+    isDeleted BOOL DEFAULT FALSE NOT NULL,
     PRIMARY KEY (idGrupo , idMateria),
     INDEX (docenteCi),
     FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo) ,
@@ -254,6 +257,27 @@ CREATE TABLE ConsultaPrivada (
     INDEX (idConsultaPrivada,docenteCi, alumnoCi),
     FOREIGN KEY (docenteCi) REFERENCES Docente (ci) ,
     FOREIGN KEY (alumnoCi) REFERENCES Alumno (ci) );
+   
+   
+    /*
+SELECT * FROM DOCENTE_DICTA_G_M ;
+SELECT * FROM Sala WHERE idMateria=1 AND idGrupo=1; -- mat1
+SELECT * FROM GRUPO_TIENE_MATERIA;   
+SELECT * FROM MATERIA;
+SELECT * FROM SALA;
+
+
+select gm.idgrupo, g.nombreGrupo, m.idmateria, m.nombremateria  from grupo_tiene_materia gm, grupo g, materia m where m.idmateria = gm.idmateria and g.idgrupo= gm.idgrupo;
+select * from materia;
+SET @idMateria = 14;
+SELECT  gm.idGrupo,g.nombreGrupo, gm.idMateria, m.NombreMateria 
+FROM Grupo_tiene_Materia gm, Grupo g, Materia m 
+WHERE gm.idGrupo = g.idGrupo
+AND gm.idMateria = m.idMateria 
+AND m.idMateria = @idMateria 
+AND g.isDeleted = false 
+AND m.isDeleted = false;
+*/
 
 CREATE TABLE CP_mensaje(
 idCp_mensaje INT NOT NULL,
@@ -288,11 +312,6 @@ FOREIGN KEY (idMateria) REFERENCES Materia (idMateria) ,
 FOREIGN KEY (docenteCi) REFERENCES Docente (ci) ,
 FOREIGN KEY (anfitrion) REFERENCES Persona (ci) 
 );
-/*
-SELECT COUNT(*) FROM Sala WHERE idGrupo=@idGrupo OR idMateria=@idMateria;
-SELECT COUNT(*) FROM Alumno_tiene_Grupo WHERE idGrupo=@idGrupo;
-SELECT COUNT(*) FROM Docente_dicta_G_M WHERE idGrupo=@idGrupo OR idMateria=@idMateria;
-*/
 
 CREATE TABLE Sala_members(
 idSala INT UNSIGNED NOT NULL,
@@ -410,10 +429,35 @@ FOR EACH ROW
 BEGIN
 SET @countSalasDeMateria = (SELECT COUNT(*) FROM Sala WHERE idMateria = OLD.idMateria);
    IF @countSalasDeMateria > 0 THEN
-        UPDATE Sala SET isDone=true WHERE idMateria=OLD.idMateria;
-		UPDATE Materia SET isDeleted=true WHERE idMateria=OLD.idMateria;
+        UPDATE Sala SET isDone=TRUE WHERE idMateria=OLD.idMateria;
+		UPDATE Materia SET isDeleted=TRUE WHERE idMateria=OLD.idMateria;
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Materia isDeleted set to true";
 	END IF;	
+END$$
+
+-- the group should not have that materia anymore, check on alumno app to see wha shows up
+CREATE TRIGGER gm BEFORE DELETE ON Grupo_tiene_Materia
+FOR EACH ROW
+BEGIN
+SET @countSalasDeMateria = (SELECT COUNT(*) FROM Sala WHERE idMateria = OLD.idMateria AND idGrupo = OLD.idGrupo);
+   IF @countSalasDeMateria > 0 THEN
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="cannot delete grupoTieneMateria";
+	END IF;	
+END$$
+
+CREATE TRIGGER doesGMalreadyExist BEFORE INSERT ON Grupo_tiene_Materia
+FOR EACH ROW
+BEGIN
+SET @isDeleted = (SELECT count(*) FROM Grupo_tiene_Materia WHERE idMateria = NEW.idMateria AND idGrupo = NEW.idGrupo);
+   IF @isDeleted = 1 THEN
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="isDeleted set to FALSE docenteDictaGM";
+	END IF;	
+END$$
+
+CREATE TRIGGER if_GM_exists_And_Has_Data AFTER UPDATE ON Grupo_tiene_Materia
+FOR EACH ROW
+BEGIN
+	UPDATE Docente_dicta_G_M SET isDeleted=false WHERE idGrupo = NEW.idGrupo AND idMateria = NEW.idMateria; 
 END$$
 
 CREATE TRIGGER checkContentPersona BEFORE DELETE ON Persona
@@ -536,6 +580,7 @@ GRANT UPDATE ON ultimadb.Orientacion_tiene_grupo TO "adminDB"@"%";
 GRANT UPDATE ON ultimadb.grupo_tiene_materia TO "adminDB"@"%";
 GRANT UPDATE ON ultimadb.alumno_tiene_grupo TO "adminDB"@"%";
 GRANT UPDATE ON ultimadb.docente_dicta_G_M TO "adminDB"@"%";
+GRANT UPDATE ON ultimaDB.Sala TO "adminDB"@"%";
 
 GRANT DELETE ON ultimadb.grupo TO "adminDB"@"%";
 GRANT DELETE ON ultimadb.Materia TO "adminDB"@"%";
@@ -552,6 +597,7 @@ GRANT DELETE ON ultimadb.alumnoTemp TO "adminDB"@"%";
 
 -- ********************************DEMO***********************************************
 
+
 INSERT INTO Grupo (nombreGrupo) VALUES 
 ('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
 
@@ -560,7 +606,7 @@ INSERT INTO Materia(nombreMateria) VALUES
 ('mat2'),('geo2'),('prog2'),('SO2'),('taller2'),
 ('mat3'),('prog3'),('SO3'),('redes y soporte'),('disenio web'),('unity');
 
-INSERT INTO Grupo_tiene_Materia VALUES 
+INSERT INTO Grupo_tiene_Materia (idGrupo, idMateria)VALUES 
 (1,1),(1,2),(1,3),(1,4),(1,5),
 (2,6),(2,7),(2,8),(2,9),(2,10),
 (3,11),(3,12),(3,13),(3,14),
@@ -586,7 +632,6 @@ INSERT INTO Persona (ci,nombre,apellido,clave,foto) VALUES
 (88888888,'sal','gore','‹mnU%·cñRMýî¸\0’ù’kRv´JÕà9îÐ”x•<¾Ïì>Šþ•(éó DoÜhµ3ýWÐ™<ÚHö',NULL),
 (99999999,'adam','sandler','Üúýxåê-‚MH\\¶á´q	5*pt°Ze§Ù=^ºïd‡-LPôµ‰°”ö>}×| z“ðl–§	A¨yœ0	›4',NULL);
 
-
 INSERT INTO userLogs (ci, login, logout) VALUES
    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
@@ -598,15 +643,13 @@ INSERT INTO userLogs (ci, login, logout) VALUES
    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))); 
 
-
-
 INSERT INTO Administrador(ci) VALUES (99999999);
 
 INSERT INTO Docente (ci) VALUES
 (77777777),
 (88888888);
 
-INSERT INTO Docente_dicta_G_M VALUES
+INSERT INTO Docente_dicta_G_M (idGrupo,idMateria,docenteCi)VALUES
 (1,1,77777777),
 (1,2,NULL),
 (1,4,NULL),
