@@ -111,6 +111,10 @@ SELECT sme.*
 FROM sala_members sme
 WHERE sme.ci= @ci;
 */ 
+-- set @idGrupo = 10;
+-- SELECT distinct g.idGrupo, g.nombreGrupo from grupo g, orientacion_tiene_grupo og 
+-- where g.idgrupo not in (select idGrupo from orientacion_tiene_grupo) 
+-- OR g.idGrupo = @idGrupo;
 
 
 CREATE TABLE Grupo (
@@ -132,9 +136,9 @@ CREATE TABLE Grupo_tiene_Materia (
     PRIMARY KEY (idGrupo , idMateria),
     INDEX (idGrupo,idMateria),
     FOREIGN KEY (idGrupo)
-        REFERENCES Grupo (idGrupo) ,
+        REFERENCES Grupo (idGrupo) ON DELETE CASCADE,
     FOREIGN KEY (idMateria)
-        REFERENCES Materia (idMateria) 
+        REFERENCES Materia (idMateria) ON DELETE CASCADE
 ); 
 
 CREATE TABLE Orientacion(
@@ -149,8 +153,8 @@ idOrientacion INT NOT NULL,
 idGrupo INT NOT NULL,
 PRIMARY KEY (idGrupo),
 INDEX (idGrupo),
-FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo) ,
-FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion) 
+FOREIGN KEY (idGrupo) REFERENCES Grupo(idGrupo) ON DELETE CASCADE ,
+FOREIGN KEY (idOrientacion) REFERENCES Orientacion(idOrientacion) ON DELETE CASCADE 
 );
 
 CREATE TABLE Persona (
@@ -224,8 +228,8 @@ CREATE TABLE Docente_dicta_G_M (
     isDeleted BOOL DEFAULT FALSE NOT NULL,
     PRIMARY KEY (idGrupo , idMateria),
     INDEX (docenteCi),
-    FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo) ,
-    FOREIGN KEY (idMateria) REFERENCES Materia (idMateria) ,
+    FOREIGN KEY (idGrupo) REFERENCES Grupo (idGrupo) ON DELETE CASCADE,
+    FOREIGN KEY (idMateria) REFERENCES Materia (idMateria) ON DELETE CASCADE,
     FOREIGN KEY (docenteCi) REFERENCES Docente (ci) 
 );
 
@@ -258,14 +262,15 @@ CREATE TABLE ConsultaPrivada (
     FOREIGN KEY (docenteCi) REFERENCES Docente (ci) ,
     FOREIGN KEY (alumnoCi) REFERENCES Alumno (ci) );
    
-   
     /*
 SELECT * FROM DOCENTE_DICTA_G_M ;
 SELECT * FROM Sala WHERE idMateria=1 AND idGrupo=1; -- mat1
-SELECT * FROM GRUPO_TIENE_MATERIA;   
+SELECT * FROM GRUPO_TIENE_MATERIA;
+SELECT g.nombreGrupo,m.nombreMateria FROM GRUPO_TIENE_MATERIA gm, grupo g, materia m WHERE gm.idGrupo=2 AND gm.idGrupo=g.idgrupo and gm.idMateria=m.idMateria;   
 SELECT * FROM MATERIA;
 SELECT * FROM SALA;
 
+SELECT * FROM Persona;
 
 select gm.idgrupo, g.nombreGrupo, m.idmateria, m.nombremateria  from grupo_tiene_materia gm, grupo g, materia m where m.idmateria = gm.idmateria and g.idgrupo= gm.idgrupo;
 select * from materia;
@@ -374,7 +379,6 @@ FOR EACH ROW
 BEGIN
 SET @countU = (SELECT COUNT(*) FROM userLogs WHERE ci=NEW.ci);
 SET @old = (SELECT logout FROM userLogs WHERE ci=NEW.ci AND logout IS NULL); 
-
 IF NEW.enLinea = true THEN
 	IF (@old IS NULL AND @countU !=0) THEN 
 		UPDATE userLogs SET logout=now() WHERE ci= NEW.ci AND logout IS NULL;
@@ -418,9 +422,9 @@ FOR EACH ROW
 BEGIN
 SET @countSalasDeGrupo = (SELECT COUNT(*) FROM Sala WHERE idGrupo = OLD.idGrupo);
    IF @countSalasDeGrupo > 0 THEN
-        UPDATE Sala SET isDone=true WHERE idGrupo=OLD.idGrupo;
-		UPDATE Grupo SET isDeleted=true WHERE idGrupo=OLD.idGrupo;
-		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Grupo isDeleted set to true";
+       -- UPDATE Sala SET isDone=true WHERE idGrupo=OLD.idGrupo;
+       -- UPDATE Grupo SET isDeleted=true WHERE idGrupo=OLD.idGrupo;
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="set grupo isDeleted=true";
 	END IF;	
 END$$
 
@@ -429,9 +433,9 @@ FOR EACH ROW
 BEGIN
 SET @countSalasDeMateria = (SELECT COUNT(*) FROM Sala WHERE idMateria = OLD.idMateria);
    IF @countSalasDeMateria > 0 THEN
-        UPDATE Sala SET isDone=TRUE WHERE idMateria=OLD.idMateria;
-		UPDATE Materia SET isDeleted=TRUE WHERE idMateria=OLD.idMateria;
-		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Materia isDeleted set to true";
+        -- UPDATE Sala SET isDone=TRUE WHERE idMateria=OLD.idMateria;
+-- 		UPDATE Materia SET isDeleted=TRUE WHERE idMateria=OLD.idMateria;
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="set materia isDeleted=true";
 	END IF;	
 END$$
 
@@ -471,6 +475,7 @@ SET @countMensajesSala = (SELECT COUNT(*) FROM Sala_mensaje WHERE autorCi =OLD.c
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Persona isDeleted set to true";
 	END IF;	
 END$$
+
 delimiter ;
 
 DROP USER IF EXISTS alumnoLogin@'%';
@@ -672,6 +677,14 @@ INSERT INTO Docente_dicta_G_M (idGrupo,idMateria,docenteCi)VALUES
 (3,11,77777777),
 (1,3,88888888),
 (3,12,88888888);
+
+delimiter $$
+CREATE TRIGGER loadIntoDdGM AFTER INSERT ON Grupo_tiene_Materia
+FOR EACH ROW
+BEGIN
+	INSERT INTO Docente_dicta_G_M (idGrupo, idMateria, docenteCi) VALUES (NEW.idGrupo, NEW.idMateria, null);
+END$$
+delimiter ;
 
 INSERT INTO Alumno (ci,apodo) VALUES
 (11111111,'cruzzz'),
