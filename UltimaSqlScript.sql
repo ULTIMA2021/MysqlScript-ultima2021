@@ -163,7 +163,7 @@ CREATE TABLE Persona (
     apellido VARCHAR(26) NOT NULL,
     clave VARCHAR(304) NOT NULL ,
     isDeleted BOOL NOT NULL DEFAULT FALSE,
-    foto BLOB  NULL,
+    foto MEDIUMBLOB  NULL,
     enLinea BOOL DEFAULT FALSE,
     INDEX(ci));	
     
@@ -207,15 +207,14 @@ CREATE TABLE Horario (
     INDEX (ci),
     FOREIGN KEY (ci) REFERENCES Docente (ci) 
 );
- 
+
  -- grupos will be stored as a string and filtered with regular expression
 CREATE TABLE AlumnoTemp (
     ci CHAR(8) PRIMARY KEY NOT NULL,
     nombre VARCHAR(20) NOT NULL,
     apellido VARCHAR(20) NOT NULL,
     clave VARCHAR(304) NOT NULL,
-    foto BLOB NULL,
-    avatar BLOB NULL,
+    foto MEDIUMBLOB NULL,
     apodo VARCHAR(20) NOT NULL,
     grupos VARCHAR(30) NOT NULL,
     INDEX(ci)
@@ -262,7 +261,7 @@ CREATE TABLE ConsultaPrivada (
     FOREIGN KEY (docenteCi) REFERENCES Docente (ci) ,
     FOREIGN KEY (alumnoCi) REFERENCES Alumno (ci) );
    
-    /*
+/*
 SELECT * FROM DOCENTE_DICTA_G_M ;
 SELECT * FROM Sala WHERE idMateria=1 AND idGrupo=1; -- mat1
 SELECT * FROM GRUPO_TIENE_MATERIA;
@@ -341,7 +340,11 @@ delimiter $$
 CREATE TRIGGER alumnoTp AFTER INSERT ON Alumno
 FOR EACH ROW 
 BEGIN
-DELETE FROM AlumnoTemp WHERE ci=NEW.ci; 
+SET @checkAlumnoTemp = (SELECT COUNT(*) FROM AlumnoTemp WHERE NEW.ci=ci);
+	IF @checkAlumnoTemp > 0 THEN
+		UPDATE Persona,AlumnoTemp SET Persona.foto = AlumnoTemp.foto WHERE NEW.ci = AlumnoTemp.ci;
+		DELETE FROM AlumnoTemp WHERE ci=NEW.ci; 
+	END IF;
 END$$
 
 CREATE TRIGGER loadMembersToSala AFTER INSERT ON Sala 
@@ -356,7 +359,7 @@ FOR EACH ROW
 BEGIN
 SET @charType= (NEW.nombre REGEXP "[^a-z^A-Z]") + (NEW.apellido REGEXP "[^a-z^A-Z]") + (NEW.ci REGEXP "[^0-9]");
 SET @lengthCi= LENGTH(NEW.ci);
-IF @chartype> 0 OR @lengthCi !=8 THEN 
+IF @chartype> 0 OR @lengthCi !=8 OR NEW.nombre="" OR NEW.apellido ="" THEN 
 	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="invalid characters";
 END IF;
 END$$
@@ -470,7 +473,7 @@ BEGIN
 SET @countLogs = (SELECT COUNT(*) FROM userLogs WHERE ci = OLD.ci);
 SET @countConsultas = (SELECT COUNT(*) FROM ConsultaPrivada WHERE alumnoCi = OLD.ci);
 SET @countMensajesSala = (SELECT COUNT(*) FROM Sala_mensaje WHERE autorCi =OLD.ci);
-   IF @countMensasjesSala + @countLogs + countConsultas > 0 THEN
+   IF @countMensasjesSala + @countLogs + @countConsultas > 0 THEN
         UPDATE Persona SET isDeleted=true WHERE ci=OLD.ci;
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="Persona isDeleted set to true";
 	END IF;	
@@ -493,11 +496,11 @@ GRANT INSERT ON ultimaDB.AlumnoTemp TO "alumnoLogin"@"%";
 
 CREATE USER "docenteLogin"@"%" IDENTIFIED BY "docenteLogin";
 GRANT SELECT (CI) ON ultimaDB.Docente TO "docenteLogin"@"%";
-GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "docenteLogin"@"%";
+GRANT SELECT ON ultimaDB.Persona TO "docenteLogin"@"%";
 
 CREATE USER "adminLogin"@"%" IDENTIFIED BY "adminLogin";
 GRANT SELECT (CI) ON ultimaDB.Administrador TO "adminLogin"@"%";
-GRANT SELECT (CI,CLAVE,NOMBRE,APELLIDO,ISDELETED) ON ultimaDB.Persona TO "adminLogin"@"%";
+GRANT SELECT ON ultimaDB.Persona TO "adminLogin"@"%";
 
 -- *************************************************************USUARIOS NORMALES DE LA APP
 CREATE USER "alumnoDB"@"%" IDENTIFIED BY "alumnoclave";
@@ -628,14 +631,14 @@ INSERT INTO Orientacion_tiene_Grupo VALUES
 
 INSERT INTO Persona (ci,nombre,apellido,clave,foto) VALUES
 (11111111,'Penelope','cruz','mOþäÅ’–†óÊ8dzz¾”gÇåü4(\0XjyŠXÖË÷‰\rÐa,°¿_…¢qà Ûbcw`ßñ›ˆæÌóë',NULL),
-(22222222,'pepe','red','mø€þ¦AÒÇp­é1³l´^D\0ÙÍ·Ùº™ÒÙ„©‘•+l;¢ëŒ]hã‹šÞ«T„j ½¬-n¯Q%À¿6ôVŽu¢q',NULL),
-(33333333,'coco','rock','H^©R¶#ýÇÜwú“ÒUøàè°¦4?¢Ãu§ð€Ïì’CZZ¢àVpÝK3.Ã yì\n!Šk¶âæÃ\0‰JV',NULL),
-(44444444,'lex','luther','ÿÜÙv:ÿí´æ}¥GOÖ5¡zÌH-t¹ ]&â‘Ê±žõÀŸÞÆžÈœ&ƒ=œ ÿÐ<óIèŒh³í4b]~R',NULL),
-(55555555,'arm','pit','¶Žz¨lÔg±9Ø£u”‡•°0Ö=`9ÅÁÄ`\n`—Ti	 }ºëîþÚ³Ü9 Œ¼,$¿ó£‰ù8a7',NULL),
-(66666666,'amy','schumer','E–édüíÇý4+h–eé4K+¼Út?í£ú´~«JDwØ1œ› &]M1±êV ™ö;\0Î×ôÆµ]ôîÑP9®',NULL),
+(22222222,'Peter','Parker','mø€þ¦AÒÇp­é1³l´^D\0ÙÍ·Ùº™ÒÙ„©‘•+l;¢ëŒ]hã‹šÞ«T„j ½¬-n¯Q%À¿6ôVŽu¢q',NULL),
+(33333333,'Kendrick','Lamar','H^©R¶#ýÇÜwú“ÒUøàè°¦4?¢Ãu§ð€Ïì’CZZ¢àVpÝK3.Ã yì\n!Šk¶âæÃ\0‰JV',NULL),
+(44444444,'Lex','Luther','ÿÜÙv:ÿí´æ}¥GOÖ5¡zÌH-t¹ ]&â‘Ê±žõÀŸÞÆžÈœ&ƒ=œ ÿÐ<óIèŒh³í4b]~R',NULL),
+(55555555,'Brad','Pitt','¶Žz¨lÔg±9Ø£u”‡•°0Ö=`9ÅÁÄ`\n`—Ti	 }ºëîþÚ³Ü9 Œ¼,$¿ó£‰ù8a7',NULL),
+(66666666,'Dwayne','Johnson','E–édüíÇý4+h–eé4K+¼Út?í£ú´~«JDwØ1œ› &]M1±êV ™ö;\0Î×ôÆµ]ôîÑP9®',NULL),
 (77777777,'abel','sings','÷&ÑŒWjW&…þÒúCš‘¿ï@-·ÊnÇ€Y)Úû ¬¢—ÍÎsm ¾ù4Æ®\ZàSdöq£äðQ',NULL),
-(88888888,'sal','gore','‹mnU%·cñRMýî¸\0’ù’kRv´JÕà9îÐ”x•<¾Ïì>Šþ•(éó DoÜhµ3ýWÐ™<ÚHö',NULL),
-(99999999,'adam','sandler','Üúýxåê-‚MH\\¶á´q	5*pt°Ze§Ù=^ºïd‡-LPôµ‰°”ö>}×| z“ðl–§	A¨yœ0	›4',NULL);
+(88888888,'Kevin','Hart','‹mnU%·cñRMýî¸\0’ù’kRv´JÕà9îÐ”x•<¾Ïì>Šþ•(éó DoÜhµ3ýWÐ™<ÚHö',NULL),
+(99999999,'Adam','Sandler','Üúýxåê-‚MH\\¶á´q	5*pt°Ze§Ù=^ºïd‡-LPôµ‰°”ö>}×| z“ðl–§	A¨yœ0	›4',NULL);
 
 INSERT INTO userLogs (ci, login, logout) VALUES
    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
@@ -688,11 +691,11 @@ delimiter ;
 
 INSERT INTO Alumno (ci,apodo) VALUES
 (11111111,'cruzzz'),
-(22222222,'pRed'),
-(33333333,'cRock'),
+(22222222,'Spider-man'),
+(33333333,'Kdot'),
 (44444444,'Lexy'),
-(55555555,'pittt'),
-(66666666,'ahumer');
+(55555555,'Capt. Pitt'),
+(66666666,'The Rock');
 
 INSERT INTO Alumno_tiene_Grupo VALUES 
 (11111111,1),
