@@ -172,7 +172,7 @@ CREATE TABLE persona (
     apellido VARCHAR(26) NOT NULL,
     clave VARCHAR(304) NOT NULL ,
     isDeleted BOOL NOT NULL DEFAULT FALSE,
-    foto MEDIUMBLOB  NULL,
+    foto MEDIUMBLOB NULL,
     enLinea BOOL DEFAULT FALSE,
     INDEX(ci));	
     
@@ -183,6 +183,7 @@ CREATE TABLE userlogs (
     INDEX (ci),
     FOREIGN KEY (ci) REFERENCES persona (ci) );
    
+
 CREATE TABLE administrador (
     ci CHAR(8) NOT NULL UNIQUE,
     PRIMARY KEY (ci),
@@ -242,7 +243,7 @@ CREATE TABLE docente_dicta_g_m (
 );
 
 CREATE TABLE alumno (
-  ci CHAR(8) UNIQUE NOT NULL,
+	ci CHAR(8) UNIQUE NOT NULL,
     apodo VARCHAR(20) UNIQUE NOT NULL,
     PRIMARY KEY(ci),
     INDEX (ci),
@@ -373,6 +374,12 @@ IF @chartype> 0 OR @lengthCi !=8 OR NEW.nombre="" OR NEW.apellido ="" THEN
 END IF;
 END$$
 
+CREATE TRIGGER deleteAlumnoTemp AFTER INSERT ON persona 
+FOR EACH ROW
+BEGIN
+	DELETE FROM alumnotemp WHERE ci=NEW.ci;
+END$$
+
 CREATE TRIGGER checkAlumnoTempData BEFORE INSERT ON alumnotemp 
 FOR EACH ROW
 BEGIN
@@ -488,10 +495,7 @@ SET @countMensajesSala = (SELECT COUNT(*) FROM sala_mensaje WHERE autorCi =OLD.c
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="persona isDeleted set to TRUE";
 	END IF;	
 END$$
-
 delimiter ;
-
-
 
 /*
 DROP USER IF EXISTS alumnoLogin@'%';
@@ -616,8 +620,6 @@ GRANT DELETE ON ultima.docente_dicta_g_m TO "adminDB"@"%";
 GRANT DELETE ON ultima.alumnotemp TO "adminDB"@"%";
 */
 
-
-
 -- ********************************DEMO***********************************************
 
 
@@ -638,8 +640,6 @@ INSERT INTO grupo_tiene_materia (idGrupo, idMateria)VALUES
 
 INSERT INTO orientacion(nombreOrientacion) VALUES
 ('desarollo y soporte'),('disenio web'),('disenio de juegos');
-
-
 
 INSERT INTO orientacion_tiene_grupo VALUES
 (1,3),
