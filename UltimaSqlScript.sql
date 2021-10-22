@@ -111,11 +111,6 @@ SELECT sme.*
 FROM sala_members sme
 WHERE sme.ci= @ci;
 */ 
--- set @idGrupo = 10;
--- SELECT distinct g.idGrupo, g.nombreGrupo from grupo g, orientacion_tiene_grupo og 
--- where g.idgrupo not in (select idGrupo from orientacion_tiene_grupo) 
--- OR g.idGrupo = @idGrupo;
-
 
 CREATE TABLE grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -181,20 +176,19 @@ CREATE TABLE userlogs (
     login DATETIME NOT NULL,
 	logOut DATETIME NULL,
     INDEX (ci),
-    FOREIGN KEY (ci) REFERENCES persona (ci) );
+    FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE);
    
-
 CREATE TABLE administrador (
     ci CHAR(8) NOT NULL UNIQUE,
     PRIMARY KEY (ci),
-    FOREIGN KEY (ci) REFERENCES persona (ci) 
+    FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE
 );
 
 CREATE TABLE docente (
 	ci CHAR(8) NOT NULL UNIQUE,
     PRIMARY KEY (ci),
     INDEX (ci),
-    FOREIGN KEY (ci) REFERENCES persona (ci) 
+    FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE
 );
 
 /*
@@ -215,7 +209,7 @@ CREATE TABLE horario (
     timeStart SMALLINT(4) UNSIGNED NULL,
 	timeEnd  SMALLINT(4) UNSIGNED NULL,
     INDEX (ci),
-    FOREIGN KEY (ci) REFERENCES docente (ci) 
+    FOREIGN KEY (ci) REFERENCES docente (ci) ON DELETE CASCADE
 );
 
  -- grupos will be stored as a string and filtered with regular expression
@@ -239,7 +233,7 @@ CREATE TABLE docente_dicta_g_m (
     INDEX (docenteCi),
     FOREIGN KEY (idGrupo) REFERENCES grupo (idGrupo) ON DELETE CASCADE,
     FOREIGN KEY (idMateria) REFERENCES materia (idMateria) ON DELETE CASCADE,
-    FOREIGN KEY (docenteCi) REFERENCES docente (ci) 
+    FOREIGN KEY (docenteCi) REFERENCES docente (ci) ON DELETE CASCADE
 );
 
 CREATE TABLE alumno (
@@ -247,7 +241,7 @@ CREATE TABLE alumno (
     apodo VARCHAR(20) UNIQUE NOT NULL,
     PRIMARY KEY(ci),
     INDEX (ci),
-    FOREIGN KEY (ci) REFERENCES persona (ci) 
+    FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE
 );
 
 CREATE TABLE alumno_tiene_grupo(
@@ -268,8 +262,8 @@ CREATE TABLE consultaprivada (
     cpFechaHora DATETIME NOT NULL,
     PRIMARY KEY (idConsultaPrivada,docenteCi, alumnoCi),
     INDEX (idConsultaPrivada,docenteCi, alumnoCi),
-    FOREIGN KEY (docenteCi) REFERENCES docente (ci) ,
-    FOREIGN KEY (alumnoCi) REFERENCES alumno (ci) );
+    FOREIGN KEY (docenteCi) REFERENCES docente (ci) ON DELETE CASCADE,
+    FOREIGN KEY (alumnoCi) REFERENCES alumno (ci) ON DELETE CASCADE);
 
 /*
 Select 6
@@ -305,10 +299,10 @@ cp_mensajeStatus ENUM('recibido','leido') NOT NULL,
 ciDestinatario CHAR(8) NOT NULL,
 PRIMARY KEY(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
 INDEX(idCp_mensaje,idConsultaPrivada,ciAlumno,ciDocente),
-FOREIGN KEY (idConsultaPrivada) REFERENCES consultaprivada (idConsultaPrivada) ,
-FOREIGN KEY (ciAlumno) REFERENCES alumno (ci) ,
-FOREIGN KEY (ciDocente) REFERENCES docente (ci) ,
-FOREIGN KEY (ciDestinatario) REFERENCES persona (ci)  );
+FOREIGN KEY (idConsultaPrivada) REFERENCES consultaprivada (idConsultaPrivada) ON DELETE CASCADE ,
+FOREIGN KEY (ciAlumno) REFERENCES alumno (ci) ON DELETE CASCADE ,
+FOREIGN KEY (ciDocente) REFERENCES docente (ci) ON DELETE CASCADE,
+FOREIGN KEY (ciDestinatario) REFERENCES persona (ci) ON DELETE CASCADE );
 
 CREATE TABLE sala(
 idSala INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -323,8 +317,8 @@ PRIMARY KEY (idSala),
 INDEX(idSala,idGrupo,idMateria),
 FOREIGN KEY (idGrupo) REFERENCES grupo (idGrupo) ,
 FOREIGN KEY (idMateria) REFERENCES materia (idMateria) ,
-FOREIGN KEY (docenteCi) REFERENCES docente (ci) ,
-FOREIGN KEY (anfitrion) REFERENCES persona (ci) 
+FOREIGN KEY (docenteCi) REFERENCES docente (ci)ON DELETE CASCADE ,
+FOREIGN KEY (anfitrion) REFERENCES persona (ci)ON DELETE CASCADE 
 );
 
 CREATE TABLE sala_members(
@@ -334,7 +328,7 @@ isConnected BOOL DEFAULT FALSE NOT NULL,
 PRIMARY KEY (idSala,ci),
 INDEX (idSala,ci),
 FOREIGN KEY (idSala) REFERENCES sala (idSala) ,
-FOREIGN KEY (ci) REFERENCES persona (ci));
+FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE);
 
 CREATE TABLE sala_mensaje(
 idSala INT UNSIGNED NOT NULL,
@@ -344,7 +338,7 @@ contenido VARCHAR(5000) NOT NULL,
 fechaHora DATETIME NOT NULL,
 INDEX (idSala),
 FOREIGN KEY (idSala) REFERENCES sala (idSala) ,
-FOREIGN KEY (autorCi) REFERENCES persona (ci) );
+FOREIGN KEY (autorCi) REFERENCES persona (ci) ON DELETE CASCADE);
 
 delimiter $$
 CREATE TRIGGER alumnoTp AFTER INSERT ON alumno
@@ -408,6 +402,7 @@ IF NEW.enLinea = TRUE THEN
     END IF;
 END IF;
 END$$
+
 -- triggers below this point need to be tested
 CREATE TRIGGER checkGrupo BEFORE INSERT ON grupo
 FOR EACH ROW
@@ -495,6 +490,8 @@ SET @countMensajesSala = (SELECT COUNT(*) FROM sala_mensaje WHERE autorCi =OLD.c
 		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="persona isDeleted set to TRUE";
 	END IF;	
 END$$
+
+
 delimiter ;
 
 /*
@@ -649,7 +646,7 @@ INSERT INTO orientacion_tiene_grupo VALUES
 INSERT INTO persona (ci,nombre,apellido,clave,foto) VALUES
 (11111111,'Penelope','cruz','mOþäÅ’–†óÊ8dzz¾”gÇåü4(\0XjyŠXÖË÷‰\rÐa,°¿_…¢qà Ûbcw`ßñ›ˆæÌóë',NULL),
 (22222222,'Peter','Parker','mø€þ¦AÒÇp­é1³l´^D\0ÙÍ·Ùº™ÒÙ„©‘•+l;¢ëŒ]hã‹šÞ«T„j ½¬-n¯Q%À¿6ôVŽu¢q',NULL),
-(33333333,'Kendrick','Lamar','H^©R¶#ýÇÜwú“ÒUøàè°¦4?¢Ãu§ð€Ïì’CZZ¢àVpÝK3.Ã yì\n!Šk¶âæÃ\0‰JV',NULL),
+(33333333,'Kendrick','Lamar','ÌòV–+ûMŸh{D·ê	iø/>~§ËXŠl*¢ºšJƒYßîÎ©îõn´=‹FÓšC 0Ô0×$1ÿùè¸«Ø¯ö5',NULL),
 (44444444,'Lex','Luther','ÿÜÙv:ÿí´æ}¥GOÖ5¡zÌH-t¹ ]&â‘Ê±žõÀŸÞÆžÈœ&ƒ=œ ÿÐ<óIèŒh³í4b]~R',NULL),
 (55555555,'Brad','Pitt','¶Žz¨lÔg±9Ø£u”‡•°0Ö=`9ÅÁÄ`\n`—Ti	 }ºëîþÚ³Ü9 Œ¼,$¿ó£‰ù8a7',NULL),
 (66666666,'Dwayne','Johnson','E–édüíÇý4+h–eé4K+¼Út?í£ú´~«JDwØ1œ› &]M1±êV ™ö;\0Î×ôÆµ]ôîÑP9®',NULL),
@@ -718,7 +715,7 @@ INSERT INTO alumno (ci,apodo) VALUES
 (44444444,'Lexy'),
 (55555555,'Capt. Pitt'),
 (66666666,'The Rock');
-
+select * from persona;
 INSERT INTO alumno_tiene_grupo (alumnoCi, idGrupo) VALUES 
 (11111111,1),
 (11111111,2),
