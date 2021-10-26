@@ -112,6 +112,26 @@ FROM sala_members sme
 WHERE sme.ci= @ci;
 */ 
 
+/*
+ME TRAE LOS DOCENTES DEL ALUMNO 
+SET @idGrupo = 1;
+SELECT DISTINCT g.idGrupo,m.idMateria,dgm.docenteCi, g.nombreGrupo, m.nombreMateria, p.nombre, p.apellido
+FROM grupo g, materia m, docente_dicta_g_m dgm, alumno_tiene_grupo ag, persona p
+WHERE g.idGrupo = @idGrupo
+AND dgm.idGrupo = @idGrupo
+AND ag.idGrupo = @idGrupo
+AND dgm.docenteCi = p.ci
+AND dgm.idMateria = m.idMateria
+AND dgm.isDeleted = FALSE
+AND ag.isDeleted = FALSE;
+
+SELECT g.nombreGrupo, m.nombreMateria, dgm.docenteCi
+FROM grupo g, materia m, docente_dicta_g_m dgm 
+WHERE dgm.idGrupo = g.idGrupo
+AND dgm.idMateria = m.idMateria
+AND dgm.docenteCi IS NOT NULL;
+*/
+
 CREATE TABLE grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreGrupo VARCHAR(25) NOT NULL UNIQUE,
@@ -170,7 +190,7 @@ CREATE TABLE persona (
     foto MEDIUMBLOB NULL,
     enLinea BOOL DEFAULT FALSE,
     INDEX(ci));	
-    
+
 CREATE TABLE userlogs (
     ci CHAR(8) NOT NULL,
     login DATETIME NOT NULL,
@@ -238,7 +258,7 @@ CREATE TABLE docente_dicta_g_m (
 
 CREATE TABLE alumno (
 	ci CHAR(8) UNIQUE NOT NULL,
-    apodo VARCHAR(20) UNIQUE NOT NULL,
+    apodo VARCHAR(20) NULL,
     PRIMARY KEY(ci),
     INDEX (ci),
     FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE
@@ -247,6 +267,7 @@ CREATE TABLE alumno (
 CREATE TABLE alumno_tiene_grupo(
 alumnoCi CHAR(8) NOT NULL,
 idGrupo INT NOT NULL,
+isDeleted BOOL DEFAULT FALSE,
 PRIMARY KEY (alumnoCi,idGrupo),
 INDEX(alumnoCi,idGrupo),
 FOREIGN KEY (alumnoCi) REFERENCES alumno(ci) ON DELETE CASCADE,
@@ -315,8 +336,8 @@ isDone BOOL DEFAULT FALSE NOT NULL,
 creacion DATETIME NOT NULL,
 PRIMARY KEY (idSala),
 INDEX(idSala,idGrupo,idMateria),
-FOREIGN KEY (idGrupo) REFERENCES grupo (idGrupo) ,
-FOREIGN KEY (idMateria) REFERENCES materia (idMateria) ,
+FOREIGN KEY (idGrupo) REFERENCES grupo (idGrupo) ON DELETE CASCADE,
+FOREIGN KEY (idMateria) REFERENCES materia (idMateria) ON DELETE CASCADE,
 FOREIGN KEY (docenteCi) REFERENCES docente (ci)ON DELETE CASCADE ,
 FOREIGN KEY (anfitrion) REFERENCES persona (ci)ON DELETE CASCADE 
 );
@@ -327,7 +348,7 @@ ci CHAR(8) NOT NULL,
 isConnected BOOL DEFAULT FALSE NOT NULL,
 PRIMARY KEY (idSala,ci),
 INDEX (idSala,ci),
-FOREIGN KEY (idSala) REFERENCES sala (idSala) ,
+FOREIGN KEY (idSala) REFERENCES sala (idSala) ON DELETE CASCADE,
 FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE);
 
 CREATE TABLE sala_mensaje(
@@ -337,7 +358,7 @@ autorCi CHAR(8) NOT NULL ,
 contenido VARCHAR(5000) NOT NULL,
 fechaHora DATETIME NOT NULL,
 INDEX (idSala),
-FOREIGN KEY (idSala) REFERENCES sala (idSala) ,
+FOREIGN KEY (idSala) REFERENCES sala (idSala) ON DELETE CASCADE,
 FOREIGN KEY (autorCi) REFERENCES persona (ci) ON DELETE CASCADE);
 
 delimiter $$
@@ -387,21 +408,20 @@ END$$
 -- para crear nuevos logs y cerrar sesiones que no se cerraron correctamente sin usar un daemon
 -- cuando una persona logs in su estado de enLinea se cambia a TRUE eso dispara este trigger
 -- MAKE SURE WHEN PERSON EN LINEA IS UPDATED IN APP. ONLY THAT COLUMN IS BEING CHANGED. AND ON THE REST OF THE UPDATES DO NOT CALL ENLINEA
-CREATE TRIGGER userHasLogged BEFORE UPDATE ON persona
-FOR EACH ROW
-BEGIN
-SET @countU = (SELECT COUNT(*) FROM userlogs WHERE ci=NEW.ci);
-SET @old = (SELECT logout FROM userlogs WHERE ci=NEW.ci AND logout IS NULL); 
-IF NEW.enLinea = TRUE THEN
-	IF (@old IS NULL AND @countU !=0) THEN 
-		UPDATE userlogs SET logout=NOW() WHERE ci= NEW.ci AND logout IS NULL;
-        INSERT INTO userlogs (ci, login, logout) VALUES (NEW.ci, NOW(), NULL);
-	END IF;
-    ELSE IF NEW.enLinea = FALSE THEN
-		UPDATE userlogs SET logout=NOW() WHERE ci= NEW.ci AND logout IS NULL;
-    END IF;
-END IF;
-END$$
+-- CREATE TRIGGER userHasLogged BEFORE UPDATE ON persona
+-- FOR EACH ROW
+-- BEGIN
+-- SET @countU = (SELECT COUNT(*) FROM userlogs WHERE ci=NEW.ci);
+-- SET @old = (SELECT logout FROM userlogs WHERE ci=NEW.ci AND logout IS NULL); 
+-- IF NEW.enLinea = TRUE THEN
+-- 	IF (@old IS NULL AND @countU !=0) THEN 
+-- 		UPDATE userlogs SET logout=NOW() WHERE ci= NEW.ci AND logout IS NULL;
+-- 	END IF;
+--     ELSE IF NEW.enLinea = FALSE THEN
+-- 		UPDATE userlogs SET logout=NOW() WHERE ci= NEW.ci AND logout IS NULL;
+--     END IF;
+-- END IF;
+-- END$$
 
 -- triggers below this point need to be tested
 CREATE TRIGGER checkGrupo BEFORE INSERT ON grupo
@@ -431,6 +451,50 @@ SET @lengthNombre = (TRIM(NEW.nombreOrientacion));
 END IF;
 END$$
 
+CREATE TRIGGER doesGMalreadyExist BEFORE INSERT ON grupo_tiene_materia
+FOR EACH ROW
+BEGIN
+SET @isDeleted = (SELECT count(*) FROM grupo_tiene_materia WHERE idMateria = NEW.idMateria AND idGrupo = NEW.idGrupo);
+   IF @isDeleted = 1 THEN
+		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="isDeleted set to FALSE docenteDictaGM";
+	END IF;	
+END$$
+
+CREATE TRIGGER if_GM_exists_And_Has_Data AFTER UPDATE ON grupo_tiene_materia
+FOR EACH ROW
+BEGIN
+  UPDATE docente_dicta_g_m SET isDeleted=FALSE WHERE idGrupo = NEW.idGrupo AND idMateria = NEW.idMateria; 
+END$$
+
+CREATE TRIGGER gm BEFORE DELETE ON grupo_tiene_materia
+FOR EACH ROW
+BEGIN
+SET @countSalasDeMateria = (SELECT COUNT(*) FROM sala WHERE idMateria = OLD.idMateria AND idGrupo = OLD.idGrupo);
+   -- IF @countSalasDeMateria > 0 THEN
+		-- SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="cannot delete grupoTieneMateria";
+	-- END IF;	
+    DELETE FROM docente_dicta_g_m  WHERE idGrupo= OLD.idGrupo AND idMateria = OLD.idMateria;
+END$$
+
+/*
+CREATE TRIGGER delDocenteDicta BEFORE DELETE ON docente_dicta_g_m
+FOR EACH ROW
+BEGIN
+SET @salasMSGCount = (SELECT count(*) FROM sala WHERE idGrupo=OLD.idGrupo AND idMateria= OLD.idMateria AND autorCi=OLD.docenteCi);
+IF @salasMSGCount > 0 THEN
+	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = "delete failed";
+END IF;
+END$$
+
+CREATE TRIGGER delAlumnoTieneGrupo BEFORE DELETE ON alumno_tiene_grupo
+FOR EACH ROW
+BEGIN
+SET @salasMSGCount = (SELECT count(*) FROM sala WHERE idGrupo=OLD.idGrupo);
+IF @salasMSGCount > 0 THEN
+	SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT = "delete failed";
+END IF;
+END$$
+
 CREATE TRIGGER checkContentGrupo BEFORE DELETE ON grupo
 FOR EACH ROW
 BEGIN
@@ -453,32 +517,6 @@ SET @countSalasDeMateria = (SELECT COUNT(*) FROM sala WHERE idMateria = OLD.idMa
 	END IF;	
 END$$
 
--- the group should not have that materia anymore, check on alumno app to see wha shows up
-CREATE TRIGGER gm BEFORE DELETE ON grupo_tiene_materia
-FOR EACH ROW
-BEGIN
-SET @countSalasDeMateria = (SELECT COUNT(*) FROM sala WHERE idMateria = OLD.idMateria AND idGrupo = OLD.idGrupo);
-   IF @countSalasDeMateria > 0 THEN
-		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="cannot delete grupoTieneMateria";
-	END IF;	
-    DELETE FROM docente_dicta_g_m  WHERE idGrupo= OLD.idGrupo AND idMateria = OLD.idMateria;
-END$$
-
-CREATE TRIGGER doesGMalreadyExist BEFORE INSERT ON grupo_tiene_materia
-FOR EACH ROW
-BEGIN
-SET @isDeleted = (SELECT count(*) FROM grupo_tiene_materia WHERE idMateria = NEW.idMateria AND idGrupo = NEW.idGrupo);
-   IF @isDeleted = 1 THEN
-		SIGNAL SQLSTATE "45000" SET MESSAGE_TEXT="isDeleted set to FALSE docenteDictaGM";
-	END IF;	
-END$$
-
-CREATE TRIGGER if_GM_exists_And_Has_Data AFTER UPDATE ON grupo_tiene_materia
-FOR EACH ROW
-BEGIN
-	UPDATE docente_dicta_g_m SET isDeleted=FALSE WHERE idGrupo = NEW.idGrupo AND idMateria = NEW.idMateria; 
-END$$
-
 CREATE TRIGGER checkContentPersona BEFORE DELETE ON persona
 FOR EACH ROW
 BEGIN
@@ -491,6 +529,7 @@ SET @countMensajesSala = (SELECT COUNT(*) FROM sala_mensaje WHERE autorCi =OLD.c
 	END IF;	
 END$$
 
+*/
 
 delimiter ;
 
@@ -617,8 +656,28 @@ GRANT DELETE ON ultima.docente_dicta_g_m TO "adminDB"@"%";
 GRANT DELETE ON ultima.alumnotemp TO "adminDB"@"%";
 */
 
+-- SET @nombreGrupo = '1BB';
+-- SET @nombreMateria = 'mat1';
+-- SELECT distinct dgm.docenteCi, dgm.idGrupo, dgm.idMateria, g.nombreGrupo, m.nombreMateria 
+-- FROM docente_dicta_g_m dgm, grupo g, materia m WHERE 
+-- m.idMateria = dgm.idMateria AND
+-- g.idGrupo = dgm.idGrupo AND 
+-- dgm.isDeleted = false; AND
+-- (dgm.docenteCi is NULL OR dgm.docenteCi="77777777");
+
+/*
+select dgm.docenteCi,g.idGrupo,g.nombreGrupo, m.idMateria, m.nombreMateria 
+from docente_dicta_g_m dgm, grupo g, materia m 
+WHERE m.idMateria=dgm.idMateria AND g.idGrupo = dgm.idGrupo order by docenteCi,idGrupo asc;
+
+select g.idGrupo,g.nombreGrupo, m.idMateria, m.nombreMateria 
+from grupo_tiene_materia gm, grupo g, materia m 
+where gm.idGrupo=g.idGrupo and m.idMateria=gm.idMateria;
+*/
+
 -- ********************************DEMO***********************************************
 
+-- INSERT INTO docente_dicta_g_m (idGrupo,idMateria,ci) VALUES (); 
 
 INSERT INTO grupo (nombreGrupo) VALUES 
 ('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
@@ -654,16 +713,16 @@ INSERT INTO persona (ci,nombre,apellido,clave,foto) VALUES
 (88888888,'Kevin','Hart','‹mnU%·cñRMýî¸\0’ù’kRv´JÕà9îÐ”x•<¾Ïì>Šþ•(éó DoÜhµ3ýWÐ™<ÚHö',NULL),
 (99999999,'Adam','Sandler','Üúýxåê-‚MH\\¶á´q	5*pt°Ze§Ù=^ºïd‡-LPôµ‰°”ö>}×| z“ðl–§	A¨yœ0	›4',NULL);
 
-INSERT INTO userlogs (ci, login, logout) VALUES
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))),
-   (11111111, DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +1 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
-   (77777777, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))); 
+-- INSERT INTO userlogs (ci, login, logout) VALUES
+--    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
+--    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
+--    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
+--    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))),
+--    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +1 DAY))),
+--    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
+--    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
+--    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
+--    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))); 
 
 INSERT INTO administrador(ci) VALUES (99999999);
 
@@ -715,7 +774,7 @@ INSERT INTO alumno (ci,apodo) VALUES
 (44444444,'Lexy'),
 (55555555,'Capt. Pitt'),
 (66666666,'The Rock');
-select * from persona;
+
 INSERT INTO alumno_tiene_grupo (alumnoCi, idGrupo) VALUES 
 (11111111,1),
 (11111111,2),
@@ -729,10 +788,10 @@ INSERT INTO alumno_tiene_grupo (alumnoCi, idGrupo) VALUES
 (44444444,1);
 
 INSERT INTO consultaprivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus,cpFechaHora) VALUES
-(1,77777777,11111111,'hola','pendiente',NOW()),
-(1,77777777,22222222,'profe hello','pendiente',NOW()),
-(1,77777777,33333333,'soy tu alumno','pendiente',NOW()),
-(1,77777777,44444444,'prat1','pendiente',NOW()),
+(1,77777777,11111111,'hola','pendiente',DATE(DATE_SUB(NOW(), INTERVAL +6 DAY))),
+(1,77777777,22222222,'profe hello','pendiente',DATE(DATE_SUB(NOW(), INTERVAL +5 DAY))),
+(1,77777777,33333333,'soy tu alumno','pendiente',DATE(DATE_SUB(NOW(), INTERVAL +3 DAY))),
+(1,77777777,44444444,'prat1','pendiente',DATE(DATE_SUB(NOW(), INTERVAL +4 DAY))),
 (1,88888888,11111111,'prat1 ej3','pendiente',NOW()),
 (1,88888888,33333333,'prat4','pendiente',NOW()),
 (1,88888888,55555555,'prat3','pendiente',NOW()),
@@ -745,13 +804,13 @@ INSERT INTO consultaprivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus
 
 INSERT INTO cp_mensaje (idCp_mensaje,idConsultaPrivada,ciDocente,ciAlumno,contenido,attachment,cp_mensajeFechaHora,cp_mensajeStatus, ciDestinatario)
 VALUES 
-(1,1,77777777,11111111,'this is a test, search for my words',NULL,NOW(),'recibido',77777777),
+(1,1,77777777,11111111,'this is a test, search for my words',NULL,DATE(DATE_SUB(NOW(), INTERVAL +6 DAY)),'recibido',77777777),
 (2,1,77777777,11111111,'jelly doughnut',NULL,NOW(),'leido',11111111),
-(1,1,77777777,22222222,'go to the city',NULL,NOW(),'recibido',77777777),
-(2,1,77777777,22222222,'live like a demon',NULL,NOW(),'recibido',22222222),
-(1,1,77777777,33333333,'give up',NULL,NOW(),'leido',77777777),
-(2,1,77777777,33333333,'check the jelly',NULL,NOW(),'leido',77777777),
-(1,1,77777777,44444444,'nope',NULL,NOW(),'leido',77777777),
+(1,1,77777777,22222222,'go to the city',NULL,DATE(DATE_SUB(NOW(), INTERVAL +5 DAY)),'recibido',77777777),
+(2,1,77777777,22222222,'live like a demon',NULL,DATE(DATE_SUB(NOW(), INTERVAL +3.5 DAY)),'recibido',22222222),
+(1,1,77777777,33333333,'give up',NULL,DATE(DATE_SUB(NOW(), INTERVAL +3 DAY)),'leido',77777777),
+(2,1,77777777,33333333,'check the jelly',NULL,DATE(DATE_SUB(NOW(), INTERVAL +2 DAY)),'leido',77777777),
+(1,1,77777777,44444444,'nope',NULL,DATE(DATE_SUB(NOW(), INTERVAL +4 DAY)),'leido',77777777),
 (2,1,77777777,44444444,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',44444444),
 (1,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',88888888),
 (2,1,88888888,11111111,'sdfsdsdssdsdsdsdsd',NULL,NOW(),'leido',11111111),
