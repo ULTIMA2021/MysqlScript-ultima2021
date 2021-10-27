@@ -131,7 +131,7 @@ WHERE dgm.idGrupo = g.idGrupo
 AND dgm.idMateria = m.idMateria
 AND dgm.docenteCi IS NOT NULL;
 */
-
+select * from persona;
 CREATE TABLE grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreGrupo VARCHAR(25) NOT NULL UNIQUE,
