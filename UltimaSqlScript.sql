@@ -131,7 +131,7 @@ WHERE dgm.idGrupo = g.idGrupo
 AND dgm.idMateria = m.idMateria
 AND dgm.docenteCi IS NOT NULL;
 */
-select * from persona;
+
 CREATE TABLE grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
 nombreGrupo VARCHAR(25) NOT NULL UNIQUE,
@@ -258,7 +258,7 @@ CREATE TABLE docente_dicta_g_m (
 
 CREATE TABLE alumno (
 	ci CHAR(8) UNIQUE NOT NULL,
-    apodo VARCHAR(20) NULL,
+    apodo VARCHAR(20) DEFAULT NULL,
     PRIMARY KEY(ci),
     INDEX (ci),
     FOREIGN KEY (ci) REFERENCES persona (ci) ON DELETE CASCADE
@@ -695,7 +695,7 @@ INSERT INTO grupo_tiene_materia (idGrupo, idMateria)VALUES
 (5,11),(5,12),(5,13),(5,16);
 
 INSERT INTO orientacion(nombreOrientacion) VALUES
-('desarollo y soporte'),('disenio web'),('disenio de juegos');
+('desarrollo y soporte'),('disenio web'),('disenio de juegos');
 
 INSERT INTO orientacion_tiene_grupo VALUES
 (1,3),
@@ -800,7 +800,6 @@ INSERT INTO consultaprivada(idConsultaPrivada,docenteCi,alumnoCi,titulo,cpStatus
 (4,77777777,11111111,'faltas hoy?','pendiente',NOW()),
 (5,77777777,11111111,'jelly','pendiente',NOW()),
 (6,77777777,11111111,'hola','resuelta',NOW());
-
 
 INSERT INTO cp_mensaje (idCp_mensaje,idConsultaPrivada,ciDocente,ciAlumno,contenido,attachment,cp_mensajeFechaHora,cp_mensajeStatus, ciDestinatario)
 VALUES 
