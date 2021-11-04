@@ -4,133 +4,6 @@ CHARACTER SET=utf8mb4
 COLLATE= utf8mb4_unicode_ci;
 USE ultima;
 
--- consultas pedidas por docente
-/*
--- logs de una persona
-SET @CIpersona = 77777777;
-SELECT p.ci, p.nombre, p.apellido, L.login, L.logout 
-FROM userlogs L, persona p
-WHERE p.ci = @CIpersona AND L.ci = @CIpersona;
-
--- logs de una persona en alguna fecha NOSE PORQUE NO FUNCIONA
-SET @CIpersona = 77777777;
-SET @fecha = "2021-09-10";
-select * from userlogs;
-
-SELECT p.ci, p.nombre, p.apellido, L.login, L.logout 
-FROM userlogs L, persona p
-WHERE p.ci = @CIpersona AND L.ci = @CIpersona 
-AND L.login >= @fecha AND L.logout <= @fecha;
-
--- check who's online
-SELECT p.ci,p.nombre,p.apellido 
-FROM persona p 
-WHERE enLinea=TRUE;
-
--- check which students are online
-SELECT p.ci,p.nombre,p.apellido 
-FROM persona p, alumno a
-WHERE enLinea=TRUE AND a.ci=p.ci;
-
--- check which teachers are online
-SELECT p.ci,p.nombre,p.apellido 
-FROM persona p, docente d
-WHERE enLinea=TRUE AND d.ci=p.ci;
-
-
--- trae las consultas donde el contenido de los mensajes o el titulo de la consulta contienen algun string
--- se ordenan por fecha, descending 
-
-set @algunaPalabra="jelly";
-select distinct c.* from consultaprivada c 
-where (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
-	in (select idConsultaPrivada,ciDocente,ciAlumno from cp_mensaje where 
-		INSTR(contenido COLLATE utf8mb4_general_ci ,@algunaPalabra) > 0) 
-OR (c.idConsultaPrivada,c.docenteCi,c.alumnoCi) 
-	in (select idConsultaPrivada,docenteCi,alumnoCi from consultaprivada where
-		INSTR(titulo COLLATE utf8mb4_general_ci ,@algunaPalabra) > 0)
-order by cpFechaHora desc;
-
-
--- trae las salas donde el contenido de los mensajes o el resumen de la sala contienen algun string
--- se ordenan por fecha, descending 
-set @algunaPalabra="jelly";
-select distinct * from sala
-where (idSala) 
-	in (select idSala from sala where
-		INSTR(resumen COLLATE utf8mb4_general_ci,@algunaPalabra) > 0)
-OR (idSala) 
-	in (select idSala from sala_mensaje where
-		INSTR(contenido COLLATE utf8mb4_general_ci,@algunaPalabra) > 0)
-order by creacion desc;
-
-
--- consultas totales de todos los docentes
-select docenteCi, count(*) as "consultas totales" from consultaprivada group by docenteCi;
-
-
--- consultas pendientes de todos los docentes
-select docenteCi, count(*) as "consultas pendiente" 
-from consultaprivada 
-where cpStatus="pendiente" group by docenteCi;
-
-
--- consultas resueltas de todos los docentes
-select docenteCi, count(*) as "consultas finalizadas" 
-from consultaprivada 
-where cpStatus="resuelta" group by docenteCi;
-
-
--- ********* toda la informacion de alguien
-
--- cambie el valor del variable para buscar diferentes personas
-set @ci=11111111;
-
--- consultas de una persona
-SELECT c.*
-FROM consultaprivada c 
-WHERE c.alumnoCi= @ci OR c.docenteCi= @ci;
-
--- mensajes de todas consultas de esa persona
-SELECT cpm.*
-FROM cp_mensaje cpm 
-WHERE @ci = cpm.ciAlumno OR @ci = cpm.ciDocente;
-
--- salas que persona creo 
-SELECT s.*
-FROM sala s
-WHERE s.anfitrion= @ci;
-
--- mensajes de salas de esa persona
-SELECT sm.*
-FROM sala_mensaje sm 
-WHERE sm.autorCi= @ci;
- 
--- salas que persona puede aceder
-SELECT sme.*
-FROM sala_members sme
-WHERE sme.ci= @ci;
-*/ 
-
-/*
-ME TRAE LOS DOCENTES DEL ALUMNO 
-SET @idGrupo = 1;
-SELECT DISTINCT g.idGrupo,m.idMateria,dgm.docenteCi, g.nombreGrupo, m.nombreMateria, p.nombre, p.apellido
-FROM grupo g, materia m, docente_dicta_g_m dgm, alumno_tiene_grupo ag, persona p
-WHERE g.idGrupo = @idGrupo
-AND dgm.idGrupo = @idGrupo
-AND ag.idGrupo = @idGrupo
-AND dgm.docenteCi = p.ci
-AND dgm.idMateria = m.idMateria
-AND dgm.isDeleted = FALSE
-AND ag.isDeleted = FALSE;
-
-SELECT g.nombreGrupo, m.nombreMateria, dgm.docenteCi
-FROM grupo g, materia m, docente_dicta_g_m dgm 
-WHERE dgm.idGrupo = g.idGrupo
-AND dgm.idMateria = m.idMateria
-AND dgm.docenteCi IS NOT NULL;
-*/
 
 CREATE TABLE grupo (
 idGrupo INT PRIMARY KEY AUTO_INCREMENT NOT NULL,
@@ -286,28 +159,6 @@ CREATE TABLE consultaprivada (
     FOREIGN KEY (docenteCi) REFERENCES docente (ci) ON DELETE CASCADE,
     FOREIGN KEY (alumnoCi) REFERENCES alumno (ci) ON DELETE CASCADE);
 
-/*
-Select 6
-SELECT * FROM docente_dicta_g_m ;
-SELECT * FROM sala WHERE idMateria=1 AND idGrupo=1; -- mat1
-SELECT * FROM grupo_tiene_materia;
-SELECT * FROM materia;
-SELECT * FROM sala;
-
-SELECT * FROM persona;
-
-select gm.idgrupo, g.nombreGrupo, m.idmateria, m.nombremateria  from grupo_tiene_materia gm, grupo g, materia m where m.idmateria = gm.idmateria and g.idgrupo= gm.idgrupo;
-select * from materia;
-SET @idMateria = 14;
-SELECT  gm.idGrupo,g.nombreGrupo, gm.idMateria, m.NombreMateria 
-FROM grupo_tiene_materia gm, grupo g, materia m 
-WHERE gm.idGrupo = g.idGrupo
-AND gm.idMateria = m.idMateria 
-AND m.idMateria = @idMateria 
-AND g.isDeleted = FALSE 
-AND m.isDeleted = FALSE;
-*/
-
 CREATE TABLE cp_mensaje(
 idCp_mensaje INT NOT NULL,
 idConsultaPrivada INT NOT NULL,
@@ -405,25 +256,6 @@ IF @chartype> 0 OR @lengthCi !=8 THEN
 END IF;
 END$$
 
--- para crear nuevos logs y cerrar sesiones que no se cerraron correctamente sin usar un daemon
--- cuando una persona logs in su estado de enLinea se cambia a TRUE eso dispara este trigger
--- MAKE SURE WHEN PERSON EN LINEA IS UPDATED IN APP. ONLY THAT COLUMN IS BEING CHANGED. AND ON THE REST OF THE UPDATES DO NOT CALL ENLINEA
--- CREATE TRIGGER userHasLogged BEFORE UPDATE ON persona
--- FOR EACH ROW
--- BEGIN
--- SET @countU = (SELECT COUNT(*) FROM userlogs WHERE ci=NEW.ci);
--- SET @old = (SELECT logout FROM userlogs WHERE ci=NEW.ci AND logout IS NULL); 
--- IF NEW.enLinea = TRUE THEN
--- 	IF (@old IS NULL AND @countU !=0) THEN 
--- 		UPDATE userlogs SET logout=NOW() WHERE ci= NEW.ci AND logout IS NULL;
--- 	END IF;
---     ELSE IF NEW.enLinea = FALSE THEN
--- 		UPDATE userlogs SET logout=NOW() WHERE ci= NEW.ci AND logout IS NULL;
---     END IF;
--- END IF;
--- END$$
-
--- triggers below this point need to be tested
 CREATE TRIGGER checkGrupo BEFORE INSERT ON grupo
 FOR EACH ROW
 BEGIN
@@ -656,28 +488,8 @@ GRANT DELETE ON ultima.docente_dicta_g_m TO "adminDB"@"%";
 GRANT DELETE ON ultima.alumnotemp TO "adminDB"@"%";
 */
 
--- SET @nombreGrupo = '1BB';
--- SET @nombreMateria = 'mat1';
--- SELECT distinct dgm.docenteCi, dgm.idGrupo, dgm.idMateria, g.nombreGrupo, m.nombreMateria 
--- FROM docente_dicta_g_m dgm, grupo g, materia m WHERE 
--- m.idMateria = dgm.idMateria AND
--- g.idGrupo = dgm.idGrupo AND 
--- dgm.isDeleted = false; AND
--- (dgm.docenteCi is NULL OR dgm.docenteCi="77777777");
-
-/*
-select dgm.docenteCi,g.idGrupo,g.nombreGrupo, m.idMateria, m.nombreMateria 
-from docente_dicta_g_m dgm, grupo g, materia m 
-WHERE m.idMateria=dgm.idMateria AND g.idGrupo = dgm.idGrupo order by docenteCi,idGrupo asc;
-
-select g.idGrupo,g.nombreGrupo, m.idMateria, m.nombreMateria 
-from grupo_tiene_materia gm, grupo g, materia m 
-where gm.idGrupo=g.idGrupo and m.idMateria=gm.idMateria;
-*/
 
 -- ********************************DEMO***********************************************
-
--- INSERT INTO docente_dicta_g_m (idGrupo,idMateria,ci) VALUES (); 
 
 INSERT INTO grupo (nombreGrupo) VALUES 
 ('1BB'),('2BB'),('3BB'),('3BA'),('3BC');
@@ -712,17 +524,6 @@ INSERT INTO persona (ci,nombre,apellido,clave,foto) VALUES
 (77777777,'abel','sings','÷&ÑŒWjW&…þÒúCš‘¿ï@-·ÊnÇ€Y)Úû ¬¢—ÍÎsm ¾ù4Æ®\ZàSdöq£äðQ',NULL),
 (88888888,'Kevin','Hart','‹mnU%·cñRMýî¸\0’ù’kRv´JÕà9îÐ”x•<¾Ïì>Šþ•(éó DoÜhµ3ýWÐ™<ÚHö',NULL),
 (99999999,'Adam','Sandler','Üúýxåê-‚MH\\¶á´q	5*pt°Ze§Ù=^ºïd‡-LPôµ‰°”ö>}×| z“ðl–§	A¨yœ0	›4',NULL);
-
--- INSERT INTO userlogs (ci, login, logout) VALUES
---    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
---    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
---    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
---    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))),
---    (11111111, DATE(DATE_SUB(NOW(), INTERVAL +7 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +1 DAY))),
---    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +11 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +10.5 DAY))),
---    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +10 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +9.5 DAY))),
---    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +9 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +8.5 DAY))),
---    (77777777, DATE(DATE_SUB(NOW(), INTERVAL +8 DAY)),  DATE(DATE_SUB(NOW(), INTERVAL +7.5 DAY))); 
 
 INSERT INTO administrador(ci) VALUES (99999999);
 
@@ -868,3 +669,15 @@ INSERT INTO sala_mensaje (idSala,autorCi,contenido,fechaHora) VALUES
 
 (4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL +10 DAY))),
 (4,77777777,"Lorem ipsum dolor sit amet, consectetur adipiscing elgna aliqua.", DATE(DATE_SUB(NOW(), INTERVAL +5 DAY)));
+
+INSERT INTO userlogs (ci,Login,Logout) VALUES 
+(11111111,"2021-10-25 15:00:00","2021-10-25 18:00:00" ),
+(11111111,"2021-10-27 12:00:00","2021-10-27 15:00:00"),
+(11111111,"2021-10-28 14:00:00","2021-10-28 17:00:00" ),
+(11111111,"2021-10-29 19:00:00", "2021-10-29 20:00:00"),
+(11111111,"2021-10-30 10:00:00","2021-10-30 13:00:00" ),
+(77777777,"2021-10-24 17:30:00","2021-10-24 19:30:00" ),
+(77777777,"2021-10-25 17:30:00","2021-10-25 19:30:00"),
+(77777777,"2021-10-26 17:30:00","2021-10-26 20:30:00"),
+(77777777,"2021-10-31 17:30:00","2021-10-31 19:25:00"),
+(77777777,"2021-11-01 17:30:00","2021-11-01 19:30:00");
